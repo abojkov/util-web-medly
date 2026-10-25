@@ -16,6 +16,10 @@ Open **http://localhost:8080**. Keep using the same browser profile, hostname, a
 
 Deploy the repository as a static website over HTTPS, including on GitHub Pages. All asset paths and the PWA scope are relative, so repository subdirectories work. No server routes or rewrite rules are needed: navigation uses URL hashes.
 
+## Link sharing preview
+
+The sharing image is `assets/images/medly-social-preview.jpg` (1200 × 630), generated with the built-in ImageGen tool. Static Open Graph and large-image card tags are in `index.html`. The canonical URL and `og:url` use `https://medly.aboykov.com/`; `og:image` and `twitter:image` use `https://medly.aboykov.com/assets/images/medly-social-preview.jpg`. Update these absolute URLs if the public domain changes. Social platforms must be able to fetch the deployed page and image without authentication; a localhost or private LAN URL cannot provide a public sharing preview.
+
 ## First version / MVP
 
 The first version delivers the complete personal archive workflow:

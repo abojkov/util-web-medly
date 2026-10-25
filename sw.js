@@ -1,8 +1,9 @@
-const CACHE = "medly-shell-v22";
+const CACHE = "medly-shell-v24";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
+  "./assets/images/medly-social-preview.jpg",
   "./assets/css/app.css",
   "./assets/vendor/bootstrap.min.css",
   "./assets/icons/icon.svg",
