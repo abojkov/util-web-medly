@@ -60,6 +60,25 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
       "field-",
       markDirty,
     );
+  if (store === "visits") {
+    const doctor = form.querySelector("#field-doctorId");
+    const clinic = form.querySelector("#field-clinicId");
+    const updateClinic = () => {
+      clinic.closest(".col-md-6").hidden = Boolean(doctor.value);
+      clinic.disabled = Boolean(doctor.value);
+      const search = form.querySelector(
+        '[data-filter-select="field-clinicId"]',
+      );
+      if (search) search.disabled = Boolean(doctor.value);
+    };
+    doctor.addEventListener("change", updateClinic);
+    updateClinic();
+    const hint = document.createElement("small");
+    hint.className = "form-text";
+    hint.textContent =
+      "Choose a clinic or laboratory when no doctor is involved.";
+    clinic.parentElement.append(hint);
+  }
   if (store === "documents") {
     const visitInput = form.querySelector("#field-visitId");
     const dateInput = form.querySelector("#field-issueDate");
@@ -108,7 +127,10 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
         values = draft.course;
         if (draft.medicine) related.medications.push(draft.medicine);
       } else values = readFields(store, form);
-      if (store === "visits") values.parentVisitId = parentVisitId;
+      if (store === "visits") {
+        values.parentVisitId = parentVisitId;
+        if (values.doctorId) values.clinicId = "";
+      }
       const file = fileInput?.files[0];
       setDialogBusy(true);
       if (file) {

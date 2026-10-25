@@ -45,7 +45,8 @@ export function visitLabel(visit, data) {
   return [
     visit.reason,
     dateLabel(visit.date, { hour: "2-digit", minute: "2-digit" }),
-    doctor?.name,
+    doctor?.name ||
+      data.clinics.find((clinic) => clinic.id === visit.clinicId)?.name,
   ]
     .filter(Boolean)
     .join(" · ");

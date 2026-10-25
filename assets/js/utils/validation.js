@@ -58,6 +58,10 @@ export function validateRecord(store, record, entityDefinitions = definitions) {
     if (field.type === "url" && value && !/^https?:\/\//i.test(value))
       throw new Error("Website must start with https:// or http://.");
   }
+  if (store === "visits" && record.doctorId && record.clinicId)
+    throw new Error(
+      "Choose a doctor or a clinic for this visit. A doctor’s clinic is used automatically.",
+    );
   if (record.startDate && record.endDate && record.endDate < record.startDate)
     throw new Error("End date must be on or after the start date.");
   if (store === "documents") {

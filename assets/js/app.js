@@ -190,6 +190,7 @@ main.addEventListener("click", async (event) => {
         {
           parentVisitId: parent.id,
           doctorId: parent.doctorId || "",
+          clinicId: parent.doctorId ? "" : parent.clinicId || "",
           type: "Follow-up",
           reason: `Follow-up: ${parent.reason}`,
         },

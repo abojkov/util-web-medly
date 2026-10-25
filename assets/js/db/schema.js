@@ -1,5 +1,5 @@
-export const APP_VERSION = "1.5.2";
-export const SCHEMA_VERSION = 6;
+export const APP_VERSION = "1.6.0";
+export const SCHEMA_VERSION = 7;
 export const DB_NAME = "medly";
 export const MAX_FILE_SIZE = 7 * 1024 * 1024;
 export const FILE_TYPES = [
@@ -52,6 +52,7 @@ export const definitions = {
         required: true,
       },
       ref("doctorId", "Doctor", "doctors"),
+      ref("clinicId", "Clinic / laboratory", "clinics"),
       ref("parentVisitId", "Follow-up to", "visits"),
       select("type", "Visit type", [
         "General consultation",
@@ -203,7 +204,7 @@ export const definitions = {
 };
 export const STORES = Object.keys(definitions);
 export const indexes = {
-  visits: ["date", "doctorId", "type", "parentVisitId"],
+  visits: ["date", "doctorId", "clinicId", "type", "parentVisitId"],
   diagnoses: ["date", "status"],
   treatments: ["startDate", "endDate", "status", "medicationId", "doctorId"],
   medications: ["name"],

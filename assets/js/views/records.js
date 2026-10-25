@@ -204,6 +204,15 @@ export function detailPage(store, id, data) {
         "Link a doctor to this clinic from the doctor’s form.",
       )
     }</section>`;
+  if (store === "clinics") {
+    const visits = data.visits.filter(
+      (visit) =>
+        visit.clinicId === id ||
+        data.doctors.find((doctor) => doctor.id === visit.doctorId)
+          ?.clinicId === id,
+    );
+    extra += `<section class="panel mt-4"><div class="panel-heading"><h2>Medical visits</h2></div>${visits.length ? visits.map((visit) => recordRow("visits", visit, data)).join("") : emptyState("visit", "No visits yet", "Visits at this clinic will appear here.")}</section>`;
+  }
   return `<a href="#/${store}" class="back-link">← ${e(definition.label)}</a>${pageHeader(definition.singular, titleFor(store, record), `Added ${dateLabel(record.createdAt)} · Updated ${dateLabel(record.updatedAt)}`, `<div class="action-group"><button class="btn btn-outline-primary" data-edit="${id}" data-store="${store}">Edit</button><button class="btn btn-light text-danger" data-delete="${id}" data-store="${store}">Delete</button></div>`)}${store === "appointments" && record.status === "Scheduled" ? `<div class="notice mb-4">After your appointment, create or link a medical visit and mark this appointment as completed.<button class="btn btn-outline-primary btn-sm" data-complete="${id}">Complete appointment</button></div>` : ""}<section class="panel detail-panel"><dl class="detail-grid">${sections}</dl>${store === "documents" ? `<div class="document-controls"><span>${e(record.type)} · ${bytesLabel(record.size)}</span><div class="action-group"><button class="btn btn-primary" data-preview="${id}">Preview</button><button class="btn btn-outline-primary" data-download="${id}">Download original</button></div></div><div id="document-preview"></div>` : ""}</section>${extra}`;
 }
 

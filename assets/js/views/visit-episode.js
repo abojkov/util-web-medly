@@ -4,6 +4,8 @@ import { icon } from "../components/icons.js";
 
 function followUpCard(visit, data, { currentId, matches }) {
   const doctor = data.doctors.find((doctor) => doctor.id === visit.doctorId);
+  const clinic =
+    !doctor && data.clinics.find((clinic) => clinic.id === visit.clinicId);
   const fields = [
     ["Symptoms", visit.symptoms],
     ["Tests & procedures", visit.procedures],
@@ -19,7 +21,7 @@ function followUpCard(visit, data, { currentId, matches }) {
   const documents = data.documents.filter(
     (document) => document.visitId === visit.id,
   );
-  return `<div class="followup-card"><article class="followup-node ${visit.id === currentId ? "current-visit" : ""}"><header class="followup-header"><span class="followup-title"><strong>${e(visit.reason)}</strong><time datetime="${e(visit.date)}">${e(dateLabel(visit.date, { hour: "2-digit", minute: "2-digit" }))}</time>${doctor ? `<span>${e(doctor.name)}</span>` : ""}</span>${matches?.has(visit.id) ? '<span class="status status-green">Matches filters</span>' : ""}</header><div class="followup-content"><dl class="followup-facts">${fields
+  return `<div class="followup-card"><article class="followup-node ${visit.id === currentId ? "current-visit" : ""}"><header class="followup-header"><span class="followup-title"><strong>${e(visit.reason)}</strong><time datetime="${e(visit.date)}">${e(dateLabel(visit.date, { hour: "2-digit", minute: "2-digit" }))}</time>${doctor || clinic ? `<span>${e((doctor || clinic).name)}</span>` : ""}</span>${matches?.has(visit.id) ? '<span class="status status-green">Matches filters</span>' : ""}</header><div class="followup-content"><dl class="followup-facts">${fields
     .filter(([, value]) => value)
     .map(
       ([label, value]) => `<div><dt>${e(label)}</dt><dd>${e(value)}</dd></div>`,

@@ -19,8 +19,18 @@ const date = (key, required = false) => ({
   type: "date",
   required,
 });
-export const version5Definitions = {
+// Version 7 adds only an optional visit clinic reference and index.
+export const version6Definitions = {
   ...definitions,
+  visits: {
+    ...definitions.visits,
+    fields: definitions.visits.fields.filter(
+      (field) => field.key !== "clinicId",
+    ),
+  },
+};
+export const version5Definitions = {
+  ...version6Definitions,
   documents: {
     ...definitions.documents,
     fields: definitions.documents.fields.filter(
@@ -31,9 +41,9 @@ export const version5Definitions = {
 export const version4Definitions = {
   ...version5Definitions,
   visits: {
-    ...definitions.visits,
+    ...version6Definitions.visits,
     fields: [
-      ...definitions.visits.fields.map((field) =>
+      ...version6Definitions.visits.fields.map((field) =>
         field.key === "notes" ? text("notes") : field,
       ),
       text("followUpInstructions"),

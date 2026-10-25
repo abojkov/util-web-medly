@@ -20,7 +20,8 @@ export function recordMeta(store, record, data) {
     const root = visitHierarchy(data.visits).root(record);
     return (
       [
-        data.doctors.find((d) => d.id === record.doctorId)?.name,
+        data.doctors.find((d) => d.id === record.doctorId)?.name ||
+          data.clinics.find((clinic) => clinic.id === record.clinicId)?.name,
         record.type,
         record.parentVisitId ? `Episode: ${root.reason}` : "",
       ]

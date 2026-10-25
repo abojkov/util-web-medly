@@ -12,6 +12,7 @@ import {
   version2Definitions,
   version4Definitions,
   version5Definitions,
+  version6Definitions,
   withDocumentIssueDates,
   moveVisitFollowupNotes,
   migrateV1,
@@ -52,13 +53,13 @@ export async function parseBackup(input) {
   if (
     !backup ||
     backup.format !== "medly-backup" ||
-    ![1, 2, 3, 4, 5, SCHEMA_VERSION].includes(backup.schemaVersion) ||
+    ![1, 2, 3, 4, 5, 6, SCHEMA_VERSION].includes(backup.schemaVersion) ||
     !backup.data ||
     typeof backup.appVersion !== "string" ||
     !Number.isFinite(Date.parse(backup.exportedAt))
   )
     throw new Error(
-      "This is not a supported Medly backup (schema versions 1 through 6).",
+      "This is not a supported Medly backup (schema versions 1 through 7).",
     );
   const entityDefinitions =
     backup.schemaVersion === 1
@@ -69,7 +70,9 @@ export async function parseBackup(input) {
           ? version4Definitions
           : backup.schemaVersion === 5
             ? version5Definitions
-            : definitions;
+            : backup.schemaVersion === 6
+              ? version6Definitions
+              : definitions;
   const data = {};
   for (const store of STORES) {
     if (!Array.isArray(backup.data[store]))

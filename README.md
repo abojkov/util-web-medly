@@ -25,7 +25,7 @@ The sharing image is `assets/images/medly-social-preview.jpg` (1200 × 630), gen
 The first version delivers the complete personal archive workflow:
 
 - **Overview:** real counts for visits, diagnoses, active treatments, future scheduled appointments and documents; recent activity; upcoming care; quick actions; friendly onboarding with no fake data.
-- **Medical visits:** add, edit, delete and inspect visits. Store date/time, doctor, type, reason, symptoms, tests/procedures, clinical findings, notes. Visit create/edit forms contain no diagnosis or treatment selectors or editors. Diagnoses and treatments each have their own section on the visit detail page. Use **Add diagnosis** to create one diagnosis in a separate modal, prefilled with the visit date; the diagnosis and visit link save atomically. Open a linked diagnosis to edit it from its own detail page. After saving a visit, use **Add treatment** on its detail page to create one course in a separate modal; the course, optional new library medicine and visit link save atomically. The visit date and doctor prefill the new treatment. Open a linked treatment to edit it from its own detail page. Clinical visit edits preserve current diagnosis and treatment links. Show the doctor’s clinic, linked care records, documents and completed appointments together on the detail page.
+- **Medical visits:** add, edit, delete and inspect visits. Store date/time, doctor, type, reason, symptoms, tests/procedures, clinical findings, notes. Visit create/edit forms contain no diagnosis or treatment selectors or editors. Diagnoses and treatments each have their own section on the visit detail page. Use **Add diagnosis** to create one diagnosis in a separate modal, prefilled with the visit date; the diagnosis and visit link save atomically. Open a linked diagnosis to edit it from its own detail page. After saving a visit, use **Add treatment** on its detail page to create one course in a separate modal; the course, optional new library medicine and visit link save atomically. The visit date and doctor prefill the new treatment. Open a linked treatment to edit it from its own detail page. Clinical visit edits preserve current diagnosis and treatment links. Doctor is optional: when none is selected, choose a clinic or laboratory directly. Selecting a doctor hides the direct clinic choice and uses the doctor’s clinic. Direct clinic links appear in visit details, list metadata, search and clinic history. Follow-ups prefill the initial visit’s clinic when no doctor is selected. Show the doctor’s clinic, linked care records, documents and completed appointments together on the detail page.
 - **Connected follow-ups:** the main Medical visits list shows initial visits as episodes, with follow-up counts and latest follow-up dates. Each episode is a non-collapsible row showing its follow-up count and the latest follow-up’s reason, date and time. Open the initial visit to see the follow-up history; follow-up cards are not rendered in the main list. Every follow-up is still its own visit with independent findings, diagnoses, treatments, documents and notes. Create a connected follow-up only through **Add follow-up** on the initial visit’s detail page. This prefills the doctor and visit type and sets the initial visit link automatically. Normal list/quick-action creation creates a separate episode. Follow-up pages and individual follow-up cards do not offer an Add follow-up action; use their initial-visit link to return to the main visit first. Clinical details and treatment courses are not copied automatically. No visit creation or edit form shows a **Follow-up to** selector or hidden parent input. The parent link is captured from the initial-visit action and preserved when editing an existing follow-up. Forms do not offer manual reassignment or detaching of episodes. A follow-up cannot follow another follow-up. Follow-ups appear as compact cards in one chronological level under the initial visit, with findings, notes and documents available inside each card. The cards omit repeated “Follow-up to” text and provide inline open/edit icons with accessible labels and 44px touch targets. Their clinical details stay visible, with no expand/collapse controls.
 - **Search and filters:** case-insensitive partial matching across structured fields and notes. Visit search also includes linked care records, doctor specialty and clinic name. Filter visits by doctor, specialty, type and inclusive date range. All filters apply together to each encounter; if a follow-up matches, the owning initial episode is returned with a matching-follow-up count; open it to review the follow-ups. The main list remains non-collapsible even while filtering. Main-list sorting uses the initial visit date (or name), while follow-ups run oldest to newest. Global search, provider histories and the health timeline continue to expose individual visits, including follow-ups. Dashboard visit totals count all encounters, not just episodes. Input is debounced by 220 ms and searches a cached snapshot rather than querying IndexedDB on each keystroke.
 - **Diagnoses:** name, date, status (Active, Resolved, Monitoring), optional medical code, notes.
@@ -73,13 +73,13 @@ Data access is separate from rendering. UI renders escaped user text; document p
 
 Search and list rendering use one snapshot per route/change, not per keystroke. This keeps personal archives simple and responsive; very large archives may eventually require pagination, incremental search indexing and lazy attachment reads. The current snapshot includes document blobs, which are not converted to base64 for everyday use.
 
-## Database schema (version 6)
+## Database schema (version 7)
 
 Database name: `medly`. All stores use `id` (UUID) as their key, plus ISO `createdAt` and `updatedAt` timestamps. Record references are UUIDs, never embedded copies. Optional single references are empty strings; multi-references are arrays of UUIDs.
 
 | Store          | Domain fields                                                                                                                                                                    | Indexes                                                      |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `visits`       | `reason`, `date`, `doctorId`, `parentVisitId`, `type`, `symptoms`, `procedures`, `findings`, `diagnosisIds[]`, `treatmentIds[]`, `notes` | `date`, `doctorId`, `type`, `parentVisitId`  |
+| `visits`       | `reason`, `date`, `doctorId`, `clinicId`, `parentVisitId`, `type`, `symptoms`, `procedures`, `findings`, `diagnosisIds[]`, `treatmentIds[]`, `notes` | `date`, `doctorId`, `clinicId`, `type`, `parentVisitId`  |
 | `diagnoses`    | `name`, `date`, `status`, `code`, `notes`                                                                                                                                        | `date`, `status`                                             |
 | `treatments`   | `name`, `medicationId`, `dosage`, `frequency`, `doctorId`, `status`, `startDate`, `endDate`, `diagnosisId`, `instructions`, `notes`                                              | `startDate`, `endDate`, `status`, `medicationId`, `doctorId` |
 | `medications`  | `name`, `strength`, `form`, `notes`                                                                                                                                              | `name`                                                       |
@@ -92,7 +92,7 @@ Visit/appointment date-times use local wall-clock values (`YYYY-MM-DDTHH:mm`) re
 
 ### Relationships and deletion
 
-- Clinic ← doctors and appointments.
+- Clinic ← doctors, direct visits and appointments.
 - Doctor ← visits, treatment courses and appointments.
 - Diagnosis ← visits and treatments.
 - Medication ← treatment courses.
@@ -111,7 +111,9 @@ Version 5 removes visit follow-up instructions and review dates, including date 
 
 Version 6 adds document issue dates and an index. Existing linked documents inherit their visit’s date during upgrade and older backup import. Unlinked documents keep an unknown issue date. Original upload timestamps and attachment bytes are preserved. The migration is atomic and rolls back on failure.
 
-Exports use schema 6; imports accept schemas 1 through 6. Version-1 backups are validated against their original schema and relationships before being converted using the same migration. Newer unsupported schemas are rejected. Future schema changes must increment `SCHEMA_VERSION`, preserve records, update backup support and test earlier supported backups. A database upgrade blocked by another tab is reported; version changes close the old connection and reload that tab.
+Version 7 adds an optional direct clinic reference and index to visits without rewriting existing records. Visits choose either a doctor or a direct clinic; doctors continue to provide their own clinic association. Existing backups keep their original relationships. Clinic deletion is blocked while direct visits reference it.
+
+Exports use schema 7; imports accept schemas 1 through 7. Version-1 backups are validated against their original schema and relationships before being converted using the same migration. Newer unsupported schemas are rejected. Future schema changes must increment `SCHEMA_VERSION`, preserve records, update backup support and test earlier supported backups. A database upgrade blocked by another tab is reported; version changes close the old connection and reload that tab.
 
 ## Backup format and recovery
 
@@ -153,6 +155,7 @@ MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/c
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/diagnoses.cjs
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/document-dates.cjs
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/document-preview.cjs
+MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/visit-clinics.cjs
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/followups.cjs
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/followup-migration.cjs
 ```
@@ -160,6 +163,8 @@ MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/f
 The script creates an isolated browser context with synthetic records, never touches a user's normal profile and checks CRUD, persistence, reference safety, multi-record visits, file validation, backups including attachment bytes and maximum-size files, rejected malformed backups, atomic rollback, search, mobile overflow and offline shell loading. Screenshots go to a temporary directory. `MEDLY_TEST_URL` may override the default `http://127.0.0.1:8080`. Set `MEDLY_BROWSER=chrome` to use an installed Google Chrome instead of Playwright's downloaded Chromium.
 
 The care suite also checks a populated v1 database upgrade to the current schema, all legacy prescription fields and attachments, repeated v1 backup imports, explicit library combination, five historical courses sharing one medicine, reuse with fresh dates, separate visit treatment modals, creation of new medicines and non-medication care, cancellation without orphan records, independent course edits, treatment deletion with atomic visit unlinking, preservation of current links during stale visit edits, duplicate-library prevention, failed treatment/link rollback, current-schema backup round trips and a failed upgrade that rolls back schema, indexes and records.
+
+The clinic-visit suite checks the additive v6→v7 upgrade without rewriting records, older/current backups, clinic-only visits at 320px, doctor switching, clinic search/history, follow-up defaults and invalid/deleted clinic protection.
 
 The document-preview suite uses a valid synthetic PDF to check Chrome’s native embedded viewer and the separate-tab fallback without opener access.
 
