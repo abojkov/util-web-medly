@@ -71,7 +71,7 @@ export function validateRecord(store, record, entityDefinitions = definitions) {
       record.size > MAX_FILE_SIZE
     )
       throw new Error(
-        "Documents must be PDF, JPEG, PNG, or WebP and no larger than 7 MB.",
+        "Documents must be PDF, JPEG, PNG or WebP and no larger than 7 MB.",
       );
   }
   return record;
@@ -83,7 +83,7 @@ export async function validateFile(file) {
     !file.size ||
     file.size > MAX_FILE_SIZE
   )
-    throw new Error("Choose a PDF, JPEG, PNG, or WebP file up to 7 MB.");
+    throw new Error("Choose a PDF, JPEG, PNG or WebP file up to 7 MB.");
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
   const ascii = (start, end) => String.fromCharCode(...bytes.slice(start, end));
   const valid =

@@ -260,7 +260,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       "PASS confirmed library combination preserves all courses, metadata and visit links",
     );
 
-    // Save a new visit, then reuse the latest course, reset episode dates/status, and keep one library item.
+    // Save a new visit, then reuse the latest course, reset episode dates/status and keep one library item.
     await page.goto(`${baseURL}/#/visits`);
     await page.locator('[data-add="visits"]').first().click();
     await page.locator("#field-reason").fill("Synthetic repeat episode");
@@ -627,7 +627,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       { courseId, deletionState },
     );
     console.log(
-      "PASS treatment deletion unlinks all visits, preserves medicines, rolls back on failure, and stale clinical edits retain current links",
+      "PASS treatment deletion unlinks all visits, preserves medicines, rolls back on failure and stale clinical edits retain current links",
     );
 
     // A failed version-change transaction must leave both records and schema at v1.

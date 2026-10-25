@@ -279,7 +279,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       .locator(`#search-results a[href="#/visits/${firstId}"]`)
       .waitFor();
     console.log(
-      "PASS four direct follow-ups, independent encounters/care/documents, top-level episode grouping, and child search/date/provider/type filters",
+      "PASS four direct follow-ups, independent encounters/care/documents, top-level episode grouping and child search/date/provider/type filters",
     );
 
     // Parent selection is never exposed in forms; database integrity still protects stored links.
@@ -424,7 +424,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await list();
     await page.getByText("2 episodes", { exact: true }).waitFor();
     console.log(
-      "PASS no parent selector, follow-up-only entry point, preserved links during edits, and transactional relationship protection",
+      "PASS no parent selector, follow-up-only entry point, preserved links during edits and transactional relationship protection",
     );
 
     const legacy = await page.evaluate(

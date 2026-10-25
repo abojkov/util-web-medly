@@ -30,7 +30,7 @@ export function dashboard(data) {
     ["documents", data.documents.length, "Documents", "Safely organized"],
   ];
   return `${pageHeader(dateLabel(new Date().toISOString(), { weekday: "long" }), "Your health, together.", "A calmer place to keep your whole health story.", addButton("visits"))}
-    ${!hasRecords ? `<section class="welcome-card"><div class="welcome-copy"><span class="pill">A FRESH START</span><h2>Every health story<br>starts somewhere.</h2><p>Bring your visits, care plans, and medical documents into one personal space. Start with your first visit — we’ll keep things organized from there.</p>${addButton("visits", "Add your first visit")}<span class="welcome-footnote">${icon("shield")} No account. No cloud. Just you.</span></div><div class="welcome-art" aria-hidden="true"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-paper"><span class="art-cross">✚</span><span class="art-line"></span><span class="art-line short"></span><svg viewBox="0 0 180 70"><path d="M0 40h40l10-13 16 32 18-47 17 38 10-10h69" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg><span class="art-line"></span><span class="art-line short"></span></div><span class="art-check">✓</span><span class="art-leaf">✦</span></div></section>` : ""}
+    ${!hasRecords ? `<section class="welcome-card"><div class="welcome-copy"><span class="pill">A FRESH START</span><h2>Every health story<br>starts somewhere.</h2><p>Bring your visits, care plans and medical documents into one personal space. Start with your first visit — we’ll keep things organized from there.</p>${addButton("visits", "Add your first visit")}<span class="welcome-footnote">${icon("shield")} No account. No cloud. Just you.</span></div><div class="welcome-art" aria-hidden="true"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-paper"><span class="art-cross">✚</span><span class="art-line"></span><span class="art-line short"></span><svg viewBox="0 0 180 70"><path d="M0 40h40l10-13 16 32 18-47 17 38 10-10h69" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg><span class="art-line"></span><span class="art-line short"></span></div><span class="art-check">✓</span><span class="art-leaf">✦</span></div></section>` : ""}
     <section class="stats-grid" aria-label="Health summary">${stats.map(([store, count, title, subtitle]) => `<a class="stat-card" href="#/${store}"><span class="stat-icon tone-${store}">${icon(definitions[store].icon)}</span><span class="stat-number">${count}</span><strong>${title}</strong><small>${subtitle}</small></a>`).join("")}</section>
     <div class="dashboard-columns"><section class="panel"><div class="panel-heading"><div><p class="eyebrow">YOUR STORY SO FAR</p><h2>Recent activity</h2></div><a class="text-link" href="#/timeline">View timeline ${icon("arrow")}</a></div>${
       hasRecords && events(data).length
@@ -43,7 +43,7 @@ export function dashboard(data) {
         : emptyState(
             "timeline",
             "Your story is ready to begin",
-            "Once you add a visit, diagnosis, or document, you’ll see it here.",
+            "Once you add a visit, diagnosis or document, you’ll see it here.",
           )
     }</section>
     <section class="panel"><div class="panel-heading"><div><p class="eyebrow">A LITTLE LOOK AHEAD</p><h2>Coming up</h2></div><a class="icon-button" href="#/appointments" aria-label="View appointments">${icon("arrow")}</a></div>${

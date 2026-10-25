@@ -177,7 +177,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await page.waitForFunction(() => !document.querySelector("#modal").open);
     await page.getByText("Edited synthetic note", { exact: true }).waitFor();
 
-    // Discard guard, inline validation, and static backdrop.
+    // Discard guard, inline validation and static backdrop.
     await page.locator("[data-edit]").click();
     await page.locator("#field-reason").fill("Unsaved synthetic edit");
     page.once("dialog", (dialog) => dialog.dismiss());
@@ -359,7 +359,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
           }
           ensure(
             blocked,
-            "unsupported schema, impossible date, or missing status rejected",
+            "unsupported schema, impossible date or missing status rejected",
           );
         }
         const duplicate = JSON.parse(encoded);
@@ -384,7 +384,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
           } catch {
             blocked = true;
           }
-          ensure(blocked, "invalid file type, signature, or size rejected");
+          ensure(blocked, "invalid file type, signature or size rejected");
         }
         // Inject failure late in replacement: earlier store clears/writes must roll back.
         const originalPut = IDBObjectStore.prototype.put;

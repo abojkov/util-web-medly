@@ -54,7 +54,7 @@ export async function saveRecord(store, values, original, related = {}) {
                 const key = medicationKey(medicine);
                 if (seen.has(key) && seen.get(key) !== medicine.id) {
                   validationError = new Error(
-                    "This medicine, strength, and form already exist. Select the existing medication from your library.",
+                    "This medicine, strength and form already exist. Select the existing medication from your library.",
                   );
                   tx.abort();
                   return;

@@ -86,7 +86,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       .getByRole("heading", { name: "Edited synthetic diagnosis", exact: true })
       .waitFor();
     console.log(
-      "PASS visit forms omit diagnosis selector; separate mobile diagnosis modal, date defaults, cancellation, linked history, and independent editing",
+      "PASS visit forms omit diagnosis selector; separate mobile diagnosis modal, date defaults, cancellation, linked history and independent editing",
     );
     const scopeFixture = await page.evaluate(
       async ({ visitId }) => {
@@ -180,7 +180,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await page.goto(`${baseURL}/#/diagnoses/${diagnosisId}`);
     await page.locator('[data-delete][data-store="diagnoses"]').waitFor();
     console.log(
-      "PASS treatment diagnosis choices scoped on create/edit, unrelated reused diagnoses cleared, historical links retained, and standalone creation has no global selector",
+      "PASS treatment diagnosis choices scoped on create/edit, unrelated reused diagnoses cleared, historical links retained and standalone creation has no global selector",
     );
     const fixture = await page.evaluate(
       async ({ visitId, diagnosisId }) => {
@@ -338,7 +338,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     );
     assert.deepEqual(errors, []);
     console.log(
-      "PASS atomic diagnosis creation/deletion, missing-visit rejection, stale edits, preserved visits/treatments, and backup round trip",
+      "PASS atomic diagnosis creation/deletion, missing-visit rejection, stale edits, preserved visits/treatments and backup round trip",
     );
   } finally {
     await context.close();

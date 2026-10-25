@@ -144,7 +144,7 @@ async function render() {
       main.innerHTML = emptyState(
         "shield",
         "Your archive could not be opened",
-        "Medly needs persistent browser storage. Enable storage, leave private browsing, or close other Medly tabs, then reload. No temporary database will be used.",
+        "Medly needs persistent browser storage. Enable storage, leave private browsing or close other Medly tabs, then reload. No temporary database will be used.",
         '<button class="btn btn-primary" id="retry-storage">Try again</button>',
       );
       document.querySelector("#retry-storage").onclick = render;
@@ -239,7 +239,7 @@ main.addEventListener("click", async (event) => {
       );
       showDialog(
         "Combine library entries",
-        `<p>Move courses from <strong>${e(medicineLabel(source))}</strong> into the entry you choose below. Review strength and form. All courses remain separate, and source details are retained in the kept entry’s notes.</p><label class="form-label" for="combine-target">Medication entry to keep</label><select class="form-select" id="combine-target">${data.medications
+        `<p>Move courses from <strong>${e(medicineLabel(source))}</strong> into the entry you choose below. Review strength and form. All courses remain separate and source details are retained in the kept entry’s notes.</p><label class="form-label" for="combine-target">Medication entry to keep</label><select class="form-select" id="combine-target">${data.medications
           .filter((medicine) => medicine.id !== sourceId)
           .map(
             (medicine) =>
