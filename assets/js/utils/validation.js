@@ -28,8 +28,13 @@ export function validateRecord(store, record, entityDefinitions = definitions) {
         new Set(value).size !== value.length
       )
         throw new Error(`Invalid ${field.label.toLowerCase()}.`);
-    } else if (typeof value !== "string" || value.length > 20000)
-      throw new Error(`${field.label} must be text, up to 20,000 characters.`);
+    } else if (
+      typeof value !== "string" ||
+      value.length > (field.maxLength || 20000)
+    )
+      throw new Error(
+        `${field.label} must be text, up to ${(field.maxLength || 20000).toLocaleString("en-US")} characters.`,
+      );
     if (field.type === "reference" && !field.multiple && !isUUID(value))
       throw new Error(`Invalid ${field.label.toLowerCase()}.`);
     if (field.options && !field.options.includes(value))

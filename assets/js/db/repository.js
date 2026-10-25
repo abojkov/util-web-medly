@@ -1,6 +1,7 @@
 import { transaction } from "./database.js";
 import { definitions, STORES } from "./schema.js";
 import { validateRecord } from "../utils/validation.js";
+import { validateVisitHierarchy } from "./relationships.js";
 
 export const medicationKey = (record) =>
   [record.name, record.strength, record.form]
@@ -53,6 +54,15 @@ export async function saveRecord(store, values, original, related = {}) {
         };
       // Stage related records before checking references. A failure rolls back the entire visit.
       for (const write of writes) tx.objectStore(write.store).put(write.record);
+      if (store === "visits")
+        tx.objectStore("visits").getAll().onsuccess = (event) => {
+          try {
+            validateVisitHierarchy(event.target.result);
+          } catch (error) {
+            validationError = error;
+            tx.abort();
+          }
+        };
       for (const write of writes)
         for (const field of definitions[write.store].fields.filter(
           (field) => field.type === "reference",

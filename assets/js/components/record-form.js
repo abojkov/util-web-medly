@@ -15,6 +15,15 @@ import {
 
 export function recordForm(store, data, original, onSaved, defaults = {}) {
   const definition = definitions[store];
+  const parentVisitId =
+    store === "visits"
+      ? original
+        ? original.parentVisitId || ""
+        : defaults.parentVisitId || ""
+      : "";
+  const recordLabel = parentVisitId
+    ? "follow-up visit"
+    : definition.singular.toLowerCase();
   const values = original || {
     date: store === "diagnoses" ? today() : localDateTime(),
     startDate: today(),
@@ -22,8 +31,8 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
   };
   let dirty = false;
   showDialog(
-    `${original ? "Edit" : "Add"} ${definition.singular.toLowerCase()}`,
-    `<form id="record-form"><p class="form-text mb-4">${store === "medications" ? "Add a medicine once. Dates, dosage, and prescription instructions belong to each treatment course." : store === "visits" || store === "treatments" ? "* Required. Save a separate course for each episode of care." : "* Required. Optional details can be added later."}</p><div id="primary-fields">${store === "treatments" ? "" : `<div class="row g-3">${formFields(store, data, values)}</div>`}</div>${store === "visits" ? '<section class="visit-treatment-section mt-4"><h3>Treatments for this visit</h3><p class="form-text">Add a new course, choose a library medicine, or reuse previous details. Everything saves together with the visit.</p><div id="pending-treatments"></div><button type="button" class="btn btn-outline-primary" id="new-visit-treatment">Add treatment</button><fieldset id="treatment-draft" class="treatment-draft mt-3" hidden disabled><div id="treatment-editor"></div><p id="course-error" class="form-error" role="alert"></p><div class="action-group mt-3"><button type="button" class="btn btn-outline-primary" id="queue-treatment">Add to visit</button><button type="button" class="btn btn-light" id="cancel-treatment">Cancel treatment</button></div></fieldset></section>' : ""}${store === "documents" && !original ? `<div class="mt-3"><label class="form-label" for="document-file">Medical file *</label><input class="form-control" id="document-file" name="file" type="file" accept="${FILE_TYPES.join(",")}" required><small class="form-text">PDF, JPEG, PNG, or WebP · maximum 7 MB. Add each document separately.</small></div>` : ""}<p id="form-error" class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="btn btn-light" id="form-cancel">Cancel</button><button type="submit" class="btn btn-primary">Save ${e(definition.singular.toLowerCase())}</button></div></form>`,
+    `${original ? "Edit" : "Add"} ${recordLabel}`,
+    `<form id="record-form"><p class="form-text mb-4">${store === "medications" ? "Add a medicine once. Dates, dosage, and prescription instructions belong to each treatment course." : store === "visits" || store === "treatments" ? "* Required. Save a separate course for each episode of care." : "* Required. Optional details can be added later."}</p><div id="primary-fields">${store === "treatments" ? "" : `<div class="row g-3">${formFields(store, data, values)}</div>`}</div>${store === "visits" ? '<section class="visit-treatment-section mt-4"><h3>Treatments for this visit</h3><p class="form-text">Add a new course, choose a library medicine, or reuse previous details. Everything saves together with the visit.</p><div id="pending-treatments"></div><button type="button" class="btn btn-outline-primary" id="new-visit-treatment">Add treatment</button><fieldset id="treatment-draft" class="treatment-draft mt-3" hidden disabled><div id="treatment-editor"></div><p id="course-error" class="form-error" role="alert"></p><div class="action-group mt-3"><button type="button" class="btn btn-outline-primary" id="queue-treatment">Add to visit</button><button type="button" class="btn btn-light" id="cancel-treatment">Cancel treatment</button></div></fieldset></section>' : ""}${store === "documents" && !original ? `<div class="mt-3"><label class="form-label" for="document-file">Medical file *</label><input class="form-control" id="document-file" name="file" type="file" accept="${FILE_TYPES.join(",")}" required><small class="form-text">PDF, JPEG, PNG, or WebP · maximum 7 MB. Add each document separately.</small></div>` : ""}<p id="form-error" class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="btn btn-light" id="form-cancel">Cancel</button><button type="submit" class="btn btn-primary">Save ${e(recordLabel)}</button></div></form>`,
     {
       onDiscard: () =>
         !dirty || window.confirm("Discard your unsaved changes?"),
@@ -175,6 +184,7 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
         if (draft.medicine) related.medications.push(draft.medicine);
       } else values = readFields(store, form);
       if (store === "visits") {
+        values.parentVisitId = parentVisitId;
         values.treatmentIds = [
           ...new Set([
             ...values.treatmentIds,

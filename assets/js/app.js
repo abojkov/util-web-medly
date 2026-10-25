@@ -171,6 +171,30 @@ main.addEventListener("click", async (event) => {
   const button = event.target.closest("button");
   if (!button || !data) return;
   try {
+    if (button.dataset.followup) {
+      const parent = data.visits.find(
+        (visit) => visit.id === button.dataset.followup,
+      );
+      if (parent.parentVisitId)
+        throw new Error(
+          "Add follow-ups from the initial visit. Follow-ups cannot follow other follow-ups.",
+        );
+      recordForm(
+        "visits",
+        data,
+        undefined,
+        async (saved) => {
+          await changed();
+          location.hash = `#/visits/${saved.id}`;
+        },
+        {
+          parentVisitId: parent.id,
+          doctorId: parent.doctorId || "",
+          type: "Follow-up",
+          reason: `Follow-up: ${parent.reason}`,
+        },
+      );
+    }
     if (button.dataset.add) {
       const store = button.dataset.add;
       if (store === "treatments" && button.dataset.visit) {

@@ -9,6 +9,8 @@ import { searchRecords, events } from "../services/history.js";
 import { icon } from "../components/icons.js";
 import { pageHeader, addButton, emptyState, recordRow } from "./shared.js";
 import { courseLabel, medicineLabel, newestCourses } from "../utils/care.js";
+import { visitHierarchy, visitLabel } from "../utils/visits.js";
+import { episodeSection, episodeListRow } from "./visit-episode.js";
 
 export function recordsPage(store, data) {
   const definition = definitions[store];
@@ -55,6 +57,27 @@ export function renderList(store, data) {
   }
   const key = definitions[store].date || "createdAt";
   const sort = document.querySelector("#sort").value;
+  const matchingIds = new Set(records.map((record) => record.id));
+  const tree = store === "visits" ? visitHierarchy(data.visits) : undefined;
+  if (tree)
+    records = [
+      ...new Map(
+        records.map((visit) => {
+          const root = tree.root(visit);
+          return [root.id, root];
+        }),
+      ).values(),
+    ];
+  const filtered =
+    store === "visits" &&
+    [
+      "list-search",
+      "filter-doctor",
+      "filter-specialty",
+      "filter-type",
+      "filter-from",
+      "filter-to",
+    ].some((id) => document.getElementById(id).value);
   records.sort((a, b) =>
     sort === "name"
       ? titleFor(store, a).localeCompare(titleFor(store, b))
@@ -63,7 +86,7 @@ export function renderList(store, data) {
         : (b[key] || b.createdAt).localeCompare(a[key] || a.createdAt),
   );
   root.innerHTML = records.length
-    ? `<div class="results-label" role="status">${records.length} ${records.length === 1 ? "record" : "records"}</div><div class="record-list">${records.map((record) => recordRow(store, record, data)).join("")}</div>`
+    ? `<div class="results-label" role="status">${records.length} ${store === "visits" ? (records.length === 1 ? "episode" : "episodes") : records.length === 1 ? "record" : "records"}</div><div class="record-list">${records.map((record) => (tree?.children.has(record.id) ? episodeListRow(record, data, tree, matchingIds, filtered) : recordRow(store, record, data))).join("")}</div>`
     : emptyState(
         definitions[store].icon,
         data[store].length
@@ -101,7 +124,7 @@ export function detailPage(store, id, data) {
           linked
             .map(
               (r) =>
-                `<a class="linked-chip" href="#/${field.store}/${r.id}">${e(field.store === "treatments" ? courseLabel(r, data) : field.store === "medications" ? medicineLabel(r) : titleFor(field.store, r))} ${icon("arrow")}</a>`,
+                `<a class="linked-chip" href="#/${field.store}/${r.id}">${e(field.store === "treatments" ? courseLabel(r, data) : field.store === "medications" ? medicineLabel(r) : field.store === "visits" ? visitLabel(r, data) : titleFor(field.store, r))} ${icon("arrow")}</a>`,
             )
             .join("") || "Not linked";
         if (store === "visits" && field.key === "doctorId") {
@@ -133,6 +156,7 @@ export function detailPage(store, id, data) {
     const docs = data.documents.filter((d) => d.visitId === id);
     const appointments = data.appointments.filter((a) => a.visitId === id);
     extra = `<section class="panel mt-4"><div class="panel-heading"><h2>Treatments & prescriptions</h2><button class="btn btn-outline-primary btn-sm" data-add="treatments" data-visit="${id}">${icon("plus")} Add treatment</button></div>${courses.length ? courses.map((course) => recordRow("treatments", course, data)).join("") : emptyState("treatment", "Record the care for this visit", "Add medication courses or non-medication treatments, each with their own instructions.")}</section><section class="panel mt-4"><div class="panel-heading"><h2>Medical documents</h2><button class="btn btn-outline-primary btn-sm" data-add="documents" data-visit="${id}">${icon("plus")} Attach document</button></div>${docs.length ? docs.map((d) => recordRow("documents", d, data)).join("") : emptyState("document", "Keep the paperwork together", "Attach reports, test results, scans, or prescriptions to this visit.")}</section>${appointments.length ? `<section class="panel mt-4"><div class="panel-heading"><h2>Linked appointments</h2></div>${appointments.map((a) => recordRow("appointments", a, data)).join("")}</section>` : ""}`;
+    extra = episodeSection(record, data) + extra;
   }
   if (store === "medications") {
     const courses = newestCourses(
@@ -221,7 +245,7 @@ export function renderSearch(data) {
         "Start typing to search all your records.",
       )
     : results.length
-      ? `<div class="results-label" role="status">${results.length} matching records</div>${results.map(({ store, record }) => recordRow(store, record, data, definitions[store].singular)).join("")}`
+      ? `<div class="results-label" role="status">${results.length} matching records</div>${results.map(({ store, record }) => recordRow(store, record, data, store === "visits" ? undefined : definitions[store].singular)).join("")}`
       : emptyState(
           "search",
           "No matching records",

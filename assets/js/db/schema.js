@@ -1,5 +1,5 @@
-export const APP_VERSION = "1.1.0";
-export const SCHEMA_VERSION = 2;
+export const APP_VERSION = "1.4.0";
+export const SCHEMA_VERSION = 5;
 export const DB_NAME = "medly";
 export const MAX_FILE_SIZE = 7 * 1024 * 1024;
 export const FILE_TYPES = [
@@ -42,7 +42,7 @@ export const definitions = {
     icon: "visit",
     title: "reason",
     date: "date",
-    description: "Every visit, with the full picture.",
+    description: "Each health episode, with its follow-ups kept together.",
     fields: [
       text("reason", "Reason for visit", { required: true }),
       {
@@ -52,6 +52,7 @@ export const definitions = {
         required: true,
       },
       ref("doctorId", "Doctor", "doctors"),
+      ref("parentVisitId", "Follow-up to", "visits"),
       select("type", "Visit type", [
         "General consultation",
         "Specialist consultation",
@@ -69,9 +70,8 @@ export const definitions = {
       area("procedures", "Tests & procedures"),
       ref("diagnosisIds", "Diagnoses", "diagnoses", true),
       ref("treatmentIds", "Existing treatments", "treatments", true),
-      area("followUpInstructions", "Follow-up instructions"),
-      date("followUpDate", "Follow-up date"),
-      area("notes", "Notes"),
+      // Retain two former 20,000-character fields plus migration labels.
+      { ...area("notes", "Notes"), maxLength: 40100 },
     ],
   },
   diagnoses: {
@@ -202,7 +202,7 @@ export const definitions = {
 };
 export const STORES = Object.keys(definitions);
 export const indexes = {
-  visits: ["date", "doctorId", "type", "followUpDate"],
+  visits: ["date", "doctorId", "type", "parentVisitId"],
   diagnoses: ["date", "status"],
   treatments: ["startDate", "endDate", "status", "medicationId", "doctorId"],
   medications: ["name"],

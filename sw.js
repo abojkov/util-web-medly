@@ -1,4 +1,4 @@
-const CACHE = "medly-shell-v10";
+const CACHE = "medly-shell-v18";
 const ASSETS = [
   "./",
   "./index.html",
@@ -18,6 +18,7 @@ const ASSETS = [
   "./assets/js/utils/validation.js",
   "./assets/js/utils/format.js",
   "./assets/js/utils/care.js",
+  "./assets/js/utils/visits.js",
   "./assets/js/services/backup.js",
   "./assets/js/services/history.js",
   "./assets/js/components/icons.js",
@@ -28,6 +29,7 @@ const ASSETS = [
   "./assets/js/views/shared.js",
   "./assets/js/views/dashboard.js",
   "./assets/js/views/records.js",
+  "./assets/js/views/visit-episode.js",
   "./assets/js/views/settings.js",
 ];
 self.addEventListener("install", (event) =>

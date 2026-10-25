@@ -7,6 +7,7 @@ import {
 import { definitions } from "../db/schema.js";
 import { icon } from "../components/icons.js";
 import { medicineLabel, newestCourses } from "../utils/care.js";
+import { visitHierarchy } from "../utils/visits.js";
 export const addButton = (store, label) =>
   `<button class="btn btn-primary" data-add="${store}">${icon("plus")}${e(label || `Add ${definitions[store].singular.toLowerCase()}`)}</button>`;
 export const pageHeader = (eyebrow, title, description, action = "") =>
@@ -15,12 +16,18 @@ export function emptyState(iconName, title, description, action = "") {
   return `<div class="empty-state"><span class="empty-icon">${icon(iconName)}</span><h3>${e(title)}</h3><p>${e(description)}</p>${action}</div>`;
 }
 export function recordMeta(store, record, data) {
-  if (store === "visits")
+  if (store === "visits") {
+    const root = visitHierarchy(data.visits).root(record);
     return (
-      [data.doctors.find((d) => d.id === record.doctorId)?.name, record.type]
+      [
+        data.doctors.find((d) => d.id === record.doctorId)?.name,
+        record.type,
+        record.parentVisitId ? `Episode: ${root.reason}` : "",
+      ]
         .filter(Boolean)
         .join(" · ") || "Medical visit"
     );
+  }
   if (store === "doctors")
     return (
       [

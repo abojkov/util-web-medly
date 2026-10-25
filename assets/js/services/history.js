@@ -14,7 +14,9 @@ export function events(data) {
             ? record.startDate
               ? "Treatment started"
               : "Treatment recorded (start date unknown)"
-            : definitions[store].singular,
+            : store === "visits" && record.parentVisitId
+              ? "Follow-up visit"
+              : definitions[store].singular,
       });
       if (
         store === "treatments" &&
@@ -45,15 +47,6 @@ export function upcoming(data) {
           ? "Overdue appointment"
           : "Appointment",
     }));
-  for (const record of data.visits)
-    if (record.followUpDate && record.followUpDate >= today())
-      result.push({
-        store: "visits",
-        record,
-        title: record.reason,
-        date: record.followUpDate,
-        label: "Follow-up",
-      });
   for (const record of data.treatments)
     if (
       record.endDate &&

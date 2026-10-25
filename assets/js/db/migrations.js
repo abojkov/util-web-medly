@@ -1,6 +1,10 @@
 import { definitions, STORES } from "./schema.js";
 import { validateRecord } from "../utils/validation.js";
-import { validateRelationships } from "./relationships.js";
+import {
+  validateRelationships,
+  validateVisitHierarchy,
+} from "./relationships.js";
+import { visitHierarchy } from "../utils/visits.js";
 
 // Keep the original shape available to validate v1 backups BEFORE transforming them.
 const text = (key, required = false) => ({
@@ -15,12 +19,34 @@ const date = (key, required = false) => ({
   type: "date",
   required,
 });
+export const version4Definitions = {
+  ...definitions,
+  visits: {
+    ...definitions.visits,
+    fields: [
+      ...definitions.visits.fields.map((field) =>
+        field.key === "notes" ? text("notes") : field,
+      ),
+      text("followUpInstructions"),
+      date("followUpDate"),
+    ],
+  },
+};
+export const version2Definitions = {
+  ...definitions,
+  visits: {
+    ...version4Definitions.visits,
+    fields: version4Definitions.visits.fields.filter(
+      (field) => field.key !== "parentVisitId",
+    ),
+  },
+};
 export const legacyDefinitions = {
   ...definitions,
   visits: {
     ...definitions.visits,
     fields: [
-      ...definitions.visits.fields,
+      ...version2Definitions.visits.fields,
       {
         key: "medicationIds",
         label: "Medications",
@@ -131,13 +157,14 @@ export function migrateV1(source) {
       ],
     };
   });
+  data.visits = data.visits.map(moveVisitFollowupNotes);
   for (const store of STORES)
     for (const record of data[store]) validateRecord(store, record);
   validateRelationships(data);
   return data;
 }
 
-export function migrateDatabase(transaction, onError) {
+export function migrateDatabase(transaction, onError, onComplete = () => {}) {
   const data = {};
   let remaining = STORES.length;
   for (const store of STORES)
@@ -151,9 +178,74 @@ export function migrateDatabase(transaction, onError) {
           for (const record of migrated[name])
             transaction.objectStore(name).put(record);
         }
+        onComplete();
       } catch (error) {
         onError(error);
         transaction.abort();
       }
     };
+}
+
+export function flattenFollowups(visits) {
+  validateVisitHierarchy(visits, { allowNested: true });
+  const tree = visitHierarchy(visits);
+  return visits.map((visit) => {
+    if (!visit.parentVisitId) return visit;
+    const rootId = tree.root(visit).id;
+    return visit.parentVisitId === rootId
+      ? visit
+      : { ...visit, parentVisitId: rootId };
+  });
+}
+
+export function migrateFlatFollowups(
+  transaction,
+  onError,
+  onComplete = () => {},
+) {
+  const store = transaction.objectStore("visits");
+  store.getAll().onsuccess = (event) => {
+    try {
+      const visits = event.target.result;
+      flattenFollowups(visits).forEach((visit, index) => {
+        if (visit !== visits[index]) store.put(visit);
+      });
+      onComplete();
+    } catch (error) {
+      onError(error);
+      transaction.abort();
+    }
+  };
+}
+
+// Keep all previously entered care information when retiring the separate fields.
+export function moveVisitFollowupNotes(visit) {
+  if (!("followUpInstructions" in visit) && !("followUpDate" in visit))
+    return visit;
+  const { followUpInstructions, followUpDate, ...record } = visit;
+  const notes = [
+    record.notes,
+    followUpInstructions
+      ? `Follow-up instructions: ${followUpInstructions}`
+      : "",
+    followUpDate ? `Recommended review date: ${followUpDate}` : "",
+  ].filter(Boolean);
+  if (notes.length) record.notes = notes.join("\n\n");
+  return record;
+}
+
+export function migrateVisitNotes(transaction, onError) {
+  const store = transaction.objectStore("visits");
+  store.getAll().onsuccess = (event) => {
+    try {
+      for (const visit of event.target.result) {
+        const migrated = moveVisitFollowupNotes(visit);
+        validateRecord("visits", migrated);
+        if (migrated !== visit) store.put(migrated);
+      }
+    } catch (error) {
+      onError(error);
+      transaction.abort();
+    }
+  };
 }

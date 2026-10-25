@@ -7,7 +7,14 @@ import {
 } from "../db/schema.js";
 import { validateRecord, validateFile } from "../utils/validation.js";
 import { validateRelationships } from "../db/relationships.js";
-import { legacyDefinitions, migrateV1 } from "../db/migrations.js";
+import {
+  legacyDefinitions,
+  version2Definitions,
+  version4Definitions,
+  moveVisitFollowupNotes,
+  migrateV1,
+  flattenFollowups,
+} from "../db/migrations.js";
 export { validateRelationships } from "../db/relationships.js";
 
 async function encodeBlob(blob) {
@@ -43,16 +50,22 @@ export async function parseBackup(input) {
   if (
     !backup ||
     backup.format !== "medly-backup" ||
-    ![1, SCHEMA_VERSION].includes(backup.schemaVersion) ||
+    ![1, 2, 3, 4, SCHEMA_VERSION].includes(backup.schemaVersion) ||
     !backup.data ||
     typeof backup.appVersion !== "string" ||
     !Number.isFinite(Date.parse(backup.exportedAt))
   )
     throw new Error(
-      "This is not a supported Medly backup (schema versions 1 and 2).",
+      "This is not a supported Medly backup (schema versions 1 through 5).",
     );
   const entityDefinitions =
-    backup.schemaVersion === 1 ? legacyDefinitions : definitions;
+    backup.schemaVersion === 1
+      ? legacyDefinitions
+      : backup.schemaVersion === 2
+        ? version2Definitions
+        : backup.schemaVersion < 5
+          ? version4Definitions
+          : definitions;
   const data = {};
   for (const store of STORES) {
     if (!Array.isArray(backup.data[store]))
@@ -101,8 +114,16 @@ export async function parseBackup(input) {
       data[store].push(record);
     }
   }
-  validateRelationships(data, entityDefinitions);
-  return backup.schemaVersion === 1 ? migrateV1(data) : data;
+  validateRelationships(data, entityDefinitions, {
+    allowNested: backup.schemaVersion === 3,
+  });
+  if (backup.schemaVersion === 3) data.visits = flattenFollowups(data.visits);
+  const migrated = backup.schemaVersion === 1 ? migrateV1(data) : data;
+  if (backup.schemaVersion < 5)
+    migrated.visits = migrated.visits.map(moveVisitFollowupNotes);
+  for (const store of STORES)
+    for (const record of migrated[store]) validateRecord(store, record);
+  return migrated;
 }
 
 export async function importBackup(data, mode) {

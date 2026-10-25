@@ -1815,6 +1815,191 @@ input[type="datetime-local"] {
 .pending-course .btn {
   flex-shrink: 0;
 }
+.episode-section {
+  padding-bottom: 12px;
+}
+.episode-origin,
+.episode-empty {
+  margin: 10px 20px 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.episode-origin a {
+  color: var(--pink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.followup-tree {
+  list-style: none;
+  padding: 0;
+  margin: 12px 16px 0;
+}
+.followup-tree > li {
+  min-width: 0;
+  margin-top: 8px;
+}
+.followup-card {
+  position: relative;
+}
+.followup-node {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fff;
+  overflow: hidden;
+}
+.followup-node.current-visit {
+  border-color: var(--pink);
+}
+.followup-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 64px;
+  padding: 9px 108px 9px 12px;
+}
+.followup-title,
+.episode-list-title {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.followup-title strong,
+.episode-list-title strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+.followup-title time,
+.followup-title > span,
+.episode-list-title > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.followup-content {
+  padding: 0 12px 10px;
+  overflow-wrap: anywhere;
+}
+.followup-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin-bottom: 6px;
+}
+.followup-facts:empty {
+  display: none;
+}
+.followup-facts > div {
+  min-width: 0;
+}
+.followup-facts dt {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.followup-facts dd {
+  margin: 2px 0 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.followup-content h4 {
+  font-size: 12px;
+  font-weight: 650;
+  margin: 10px 0 5px;
+}
+.episode-course {
+  margin: 5px 0;
+  padding: 6px 10px;
+  background: var(--pink-soft);
+  border-radius: 7px;
+}
+.episode-course p {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 2px 0;
+}
+.episode-course .text-link {
+  min-height: 32px;
+}
+.episode-course .episode-instructions {
+  white-space: pre-wrap;
+  color: var(--ink);
+}
+.followup-actions {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  gap: 2px;
+}
+.followup-actions .icon-button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  color: var(--pink);
+}
+.followup-actions .icon-button:hover {
+  background: var(--pink-soft);
+}
+.followup-actions .icon {
+  width: 18px;
+  height: 18px;
+}
+.episode-list-group {
+  gap: 12px;
+}
+.episode-list-group > .icon {
+  color: var(--pink);
+  width: 16px;
+  height: 16px;
+}
+.episode-list-group .episode-match {
+  color: var(--pink);
+}
+.episode-count {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: var(--pink-soft);
+  color: var(--pink);
+  font-size: 11px;
+  text-align: center;
+}
+@media (max-width: 767px) {
+  .followup-tree {
+    margin-inline: 10px;
+  }
+  .followup-facts {
+    grid-template-columns: 1fr;
+  }
+  .followup-title strong {
+    font-size: 12px;
+  }
+  .followup-title time,
+  .followup-title > span {
+    font-size: 10px;
+  }
+  .episode-section .panel-heading {
+    flex-wrap: wrap;
+    padding-top: 16px;
+  }
+  .episode-count {
+    font-size: 10px;
+    max-width: 65px;
+  }
+  .episode-origin,
+  .episode-empty {
+    margin-inline: 18px;
+  }
+  .episode-list-group {
+    gap: 8px;
+  }
+  .episode-list-group > .record-icon {
+    display: none;
+  }
+}
 .care-record-row .record-body > span {
   white-space: normal;
   overflow-wrap: anywhere;

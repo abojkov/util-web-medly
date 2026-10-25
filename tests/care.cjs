@@ -74,6 +74,9 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
           medicationIds: [medication.id],
           treatmentIds: i === 1 ? [existing.id] : [],
           diagnosisIds: [],
+          notes: "Original visit notes",
+          followUpInstructions: "Original return advice",
+          followUpDate: "2027-01-20",
         });
       }
       const pdf = "%PDF-1.4\nSynthetic legacy attachment\n%%EOF";
@@ -136,7 +139,17 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         "./assets/js/services/backup.js"
       );
       const data = await snapshot();
-      ensure((await openDatabase()).version === 2, "schema upgraded to 2");
+      ensure(
+        data.visits[0].notes ===
+          "Original visit notes\n\nFollow-up instructions: Original return advice\n\nRecommended review date: 2027-01-20",
+        "legacy advice preserved in notes",
+      );
+      ensure(
+        !("followUpDate" in data.visits[0]) &&
+          !("followUpInstructions" in data.visits[0]),
+        "retired fields removed",
+      );
+      ensure((await openDatabase()).version === 5, "schema upgraded to 5");
       ensure(
         data.medications.length === 5 && data.treatments.length === 6,
         "all legacy prescriptions preserved without name-based merging",
@@ -212,7 +225,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       );
     }, legacyBackup);
     console.log(
-      "PASS real v1→v2 upgrade, every legacy field and attachment, unknown dates, v1 backup compatibility and repeated merge",
+      "PASS real v1→current schema upgrade, every legacy field and attachment, unknown dates, v1 backup compatibility and repeated merge",
     );
 
     // Review and explicitly combine the five migrated entries. Courses stay separate.
@@ -451,7 +464,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         "./assets/js/services/backup.js"
       );
       const backup = await createBackup();
-      if (backup.schemaVersion !== 2) throw Error("Wrong export schema");
+      if (backup.schemaVersion !== 5) throw Error("Wrong export schema");
       await importBackup(await parseBackup(JSON.stringify(backup)), "replace");
       if (
         JSON.stringify(backup, (key, value) =>
@@ -464,7 +477,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         throw Error("v2 round trip changed care data");
     });
     console.log(
-      "PASS cancel has no writes, duplicate prevention, independent course edits, atomic visit rollback and v2 backup round trip",
+      "PASS cancel has no writes, duplicate prevention, independent course edits, atomic visit rollback and current-schema backup round trip",
     );
 
     await page.setViewportSize({ width: 320, height: 750 });

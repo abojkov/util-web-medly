@@ -109,7 +109,6 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         findings: "Synthetic finding",
         procedures: "ECG, blood sample",
         notes: '<img src=x onerror="window.__unsafe=true">',
-        followUpDate: "2027-01-20",
       },
       {
         doctorId,
@@ -427,7 +426,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
 
     await page.goto(`${baseURL}/#/visits`);
     await page.locator("#list-search").fill("ECG");
-    await page.getByText("1 record", { exact: true }).waitFor();
+    await page.getByText("1 episode", { exact: true }).waitFor();
     await page.locator("#filter-from").fill("2027-01-01");
     await page.getByRole("heading", { name: "No matching records" }).waitFor();
     await page.goto(`${baseURL}/#/search`);

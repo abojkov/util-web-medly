@@ -1,5 +1,9 @@
 import { DB_NAME, SCHEMA_VERSION, STORES, indexes } from "./schema.js";
-import { migrateDatabase } from "./migrations.js";
+import {
+  migrateDatabase,
+  migrateFlatFollowups,
+  migrateVisitNotes,
+} from "./migrations.js";
 
 let database;
 export function openDatabase() {
@@ -24,10 +28,19 @@ export function openDatabase() {
           if (!store.indexNames.contains(index))
             store.createIndex(index, index, { unique: false });
       }
+      const onError = (error) => {
+        migrationError = error;
+      };
+      const migrateNotes = () =>
+        migrateVisitNotes(request.transaction, onError);
+      const visits = request.transaction.objectStore("visits");
+      if (visits.indexNames.contains("followUpDate"))
+        visits.deleteIndex("followUpDate");
       if (event.oldVersion === 1)
-        migrateDatabase(request.transaction, (error) => {
-          migrationError = error;
-        });
+        migrateDatabase(request.transaction, onError, migrateNotes);
+      else if (event.oldVersion >= 2 && event.oldVersion < 4)
+        migrateFlatFollowups(request.transaction, onError, migrateNotes);
+      else if (event.oldVersion === 4) migrateNotes();
     };
     request.onerror = () => reject(migrationError || request.error);
     request.onblocked = () =>

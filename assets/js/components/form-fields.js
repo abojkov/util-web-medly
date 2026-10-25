@@ -5,17 +5,19 @@ import {
   newestCourses,
   courseLabel,
 } from "../utils/care.js";
+import { visitLabel } from "../utils/visits.js";
 export function formFields(store, data, values = {}, prefix = "field-") {
   return definitions[store].fields
+    .filter((field) => field.key !== "parentVisitId")
     .map((field) => {
       const value = values[field.key] ?? "";
       const id = `${prefix}${field.key}`;
       const common = `id="${id}" name="${id}" ${field.required ? "required" : ""}`;
       let input;
       if (field.type === "textarea")
-        input = `<textarea class="form-control" ${common} rows="3" maxlength="20000">${e(value)}</textarea>`;
+        input = `<textarea class="form-control" ${common} rows="3" maxlength="${field.maxLength || 20000}">${e(value)}</textarea>`;
       else if (["select", "reference"].includes(field.type)) {
-        const records =
+        let records =
           field.store === "treatments"
             ? newestCourses(data.treatments)
             : [...(data[field.store] || [])].sort((a, b) =>
@@ -32,7 +34,9 @@ export function formFields(store, data, values = {}, prefix = "field-") {
                   ? courseLabel(record, data)
                   : field.store === "medications"
                     ? medicineChoiceLabel(record, data)
-                    : titleFor(field.store, record),
+                    : field.store === "visits"
+                      ? visitLabel(record, data)
+                      : titleFor(field.store, record),
             }));
         input = `${field.type === "reference" && options.length > 8 ? `<input class="form-control selector-search" type="search" placeholder="Find ${e(field.label.toLowerCase())}…" aria-label="Filter ${e(field.label.toLowerCase())}" data-filter-select="${id}">` : ""}<select class="form-select" ${common} ${field.multiple ? 'multiple size="4"' : ""}>${!field.multiple && field.type === "reference" ? `<option value="">${field.key === "medicationId" ? "No medication (non-medication care)" : "Not linked"}</option>` : ""}${options.map((option) => `<option value="${e(option.id)}" ${(field.multiple ? value.includes?.(option.id) : value === option.id) ? "selected" : ""}>${e(option.title)}</option>`).join("")}${field.key === "medicationId" ? '<option value="__new__">+ Add a new medicine to the library</option>' : ""}</select>`;
         if (field.multiple)
@@ -41,7 +45,7 @@ export function formFields(store, data, values = {}, prefix = "field-") {
         if (
           field.type === "reference" &&
           !options.length &&
-          field.key !== "medicationId"
+          !["medicationId", "parentVisitId"].includes(field.key)
         )
           input +=
             '<small class="form-text">You can add and link these later.</small>';
@@ -53,15 +57,17 @@ export function formFields(store, data, values = {}, prefix = "field-") {
 }
 export function readFields(store, root, prefix = "field-") {
   return Object.fromEntries(
-    definitions[store].fields.map((field) => {
-      const input = root.querySelector(`#${prefix}${field.key}`);
-      return [
-        field.key,
-        field.multiple
-          ? [...input.selectedOptions].map((option) => option.value)
-          : input.value.trim(),
-      ];
-    }),
+    definitions[store].fields
+      .filter((field) => field.key !== "parentVisitId")
+      .map((field) => {
+        const input = root.querySelector(`#${prefix}${field.key}`);
+        return [
+          field.key,
+          field.multiple
+            ? [...input.selectedOptions].map((option) => option.value)
+            : input.value.trim(),
+        ];
+      }),
   );
 }
 export function bindFieldSearch(root) {
