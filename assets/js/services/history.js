@@ -10,13 +10,15 @@ export function events(data) {
         title: titleFor(store, record),
         date: record[definitions[store].date] || record.createdAt,
         label:
-          store === "treatments"
-            ? record.startDate
-              ? "Treatment started"
-              : "Treatment recorded (start date unknown)"
-            : store === "visits" && record.parentVisitId
-              ? "Follow-up visit"
-              : definitions[store].singular,
+          store === "documents" && !record.issueDate
+            ? "Document added (issue date unknown)"
+            : store === "treatments"
+              ? record.startDate
+                ? "Treatment started"
+                : "Treatment recorded (start date unknown)"
+              : store === "visits" && record.parentVisitId
+                ? "Follow-up visit"
+                : definitions[store].singular,
       });
       if (
         store === "treatments" &&

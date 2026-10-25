@@ -83,7 +83,6 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         startDate: "2026-01-10",
         endDate: "2027-01-10",
       },
-      { diagnosisId },
     );
     const medicationId = await add("medications", {
       name: "Synthetic medication",

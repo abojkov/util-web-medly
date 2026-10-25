@@ -1,5 +1,5 @@
-export const APP_VERSION = "1.4.3";
-export const SCHEMA_VERSION = 5;
+export const APP_VERSION = "1.5.1";
+export const SCHEMA_VERSION = 6;
 export const DB_NAME = "medly";
 export const MAX_FILE_SIZE = 7 * 1024 * 1024;
 export const FILE_TYPES = [
@@ -164,10 +164,11 @@ export const definitions = {
     singular: "Document",
     icon: "document",
     title: "name",
-    date: "createdAt",
+    date: "issueDate",
     description: "Your paperwork. A little more organized.",
     fields: [
       text("name", "File name", { required: true }),
+      date("issueDate", "Document issue date"),
       ref("visitId", "Medical visit", "visits"),
       area("description", "Description"),
     ],
@@ -208,6 +209,6 @@ export const indexes = {
   medications: ["name"],
   doctors: ["name", "specialty", "clinicId"],
   clinics: ["name"],
-  documents: ["visitId", "createdAt"],
+  documents: ["visitId", "createdAt", "issueDate"],
   appointments: ["date", "status", "visitId"],
 };

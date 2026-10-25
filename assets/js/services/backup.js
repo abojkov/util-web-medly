@@ -11,6 +11,8 @@ import {
   legacyDefinitions,
   version2Definitions,
   version4Definitions,
+  version5Definitions,
+  withDocumentIssueDates,
   moveVisitFollowupNotes,
   migrateV1,
   flattenFollowups,
@@ -50,13 +52,13 @@ export async function parseBackup(input) {
   if (
     !backup ||
     backup.format !== "medly-backup" ||
-    ![1, 2, 3, 4, SCHEMA_VERSION].includes(backup.schemaVersion) ||
+    ![1, 2, 3, 4, 5, SCHEMA_VERSION].includes(backup.schemaVersion) ||
     !backup.data ||
     typeof backup.appVersion !== "string" ||
     !Number.isFinite(Date.parse(backup.exportedAt))
   )
     throw new Error(
-      "This is not a supported Medly backup (schema versions 1 through 5).",
+      "This is not a supported Medly backup (schema versions 1 through 6).",
     );
   const entityDefinitions =
     backup.schemaVersion === 1
@@ -65,7 +67,9 @@ export async function parseBackup(input) {
         ? version2Definitions
         : backup.schemaVersion < 5
           ? version4Definitions
-          : definitions;
+          : backup.schemaVersion === 5
+            ? version5Definitions
+            : definitions;
   const data = {};
   for (const store of STORES) {
     if (!Array.isArray(backup.data[store]))
@@ -121,6 +125,8 @@ export async function parseBackup(input) {
   const migrated = backup.schemaVersion === 1 ? migrateV1(data) : data;
   if (backup.schemaVersion < 5)
     migrated.visits = migrated.visits.map(moveVisitFollowupNotes);
+  if (backup.schemaVersion < 6)
+    migrated.documents = withDocumentIssueDates(migrated);
   for (const store of STORES)
     for (const record of migrated[store]) validateRecord(store, record);
   return migrated;

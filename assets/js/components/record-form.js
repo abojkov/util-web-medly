@@ -28,6 +28,11 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
     startDate: today(),
     ...defaults,
   };
+  if (store === "documents" && !original && defaults.visitId)
+    values.issueDate =
+      data.visits
+        .find((visit) => visit.id === defaults.visitId)
+        ?.date.slice(0, 10) || "";
   let dirty = false;
   showDialog(
     `${original ? "Edit" : "Add"} ${recordLabel}`,
@@ -55,6 +60,27 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
       "field-",
       markDirty,
     );
+  if (store === "documents") {
+    const visitInput = form.querySelector("#field-visitId");
+    const dateInput = form.querySelector("#field-issueDate");
+    let dateEdited = Boolean(original?.issueDate);
+    dateInput.addEventListener("input", () => {
+      dateEdited = Boolean(dateInput.value);
+    });
+    visitInput.addEventListener("change", () => {
+      if (dateEdited) return;
+      const automaticDate =
+        data.visits
+          .find((visit) => visit.id === visitInput.value)
+          ?.date.slice(0, 10) || "";
+      dateInput.value = automaticDate;
+    });
+    const hint = document.createElement("small");
+    hint.className = "form-text";
+    hint.textContent =
+      "Use the date printed on the document. Defaults to the linked visit’s date. Leave blank if unknown.";
+    dateInput.parentElement.append(hint);
+  }
   const fileInput = form.querySelector('[name="file"]');
   if (fileInput) {
     form.querySelector("#field-name").required = false;

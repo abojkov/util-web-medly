@@ -3,6 +3,7 @@ import {
   migrateDatabase,
   migrateFlatFollowups,
   migrateVisitNotes,
+  migrateDocumentDates,
 } from "./migrations.js";
 
 let database;
@@ -31,8 +32,10 @@ export function openDatabase() {
       const onError = (error) => {
         migrationError = error;
       };
+      const migrateDocuments = () =>
+        migrateDocumentDates(request.transaction, onError);
       const migrateNotes = () =>
-        migrateVisitNotes(request.transaction, onError);
+        migrateVisitNotes(request.transaction, onError, migrateDocuments);
       const visits = request.transaction.objectStore("visits");
       if (visits.indexNames.contains("followUpDate"))
         visits.deleteIndex("followUpDate");
@@ -41,6 +44,7 @@ export function openDatabase() {
       else if (event.oldVersion >= 2 && event.oldVersion < 4)
         migrateFlatFollowups(request.transaction, onError, migrateNotes);
       else if (event.oldVersion === 4) migrateNotes();
+      else if (event.oldVersion === 5) migrateDocuments();
     };
     request.onerror = () => reject(migrationError || request.error);
     request.onblocked = () =>

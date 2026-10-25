@@ -479,7 +479,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         const restored = await createBackup();
         if (
           JSON.stringify(backup.data) !== JSON.stringify(restored.data) ||
-          backup.schemaVersion !== 5
+          backup.schemaVersion !== 6
         )
           throw Error("Episode backup round trip failed");
         const legacy = structuredClone(backup);
@@ -587,7 +587,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await context.setOffline(false);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS merge-cycle rollback, schema-5 backup round trip, reload persistence, nested mobile layouts and offline episode history",
+      "PASS merge-cycle rollback, schema-6 backup round trip, reload persistence, nested mobile layouts and offline episode history",
     );
 
     // Upgrade an actual v2 archive: preserve every record and add the index without guessing links.
@@ -635,21 +635,41 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         const { openDatabase } = await import("./assets/js/db/database.js");
         const db = await openDatabase();
         if (
-          db.version !== 5 ||
+          db.version !== 6 ||
           !db
             .transaction("visits")
             .objectStore("visits")
             .indexNames.contains("parentVisitId")
         )
-          throw Error("v2 archive did not upgrade to indexed v5 schema");
+          throw Error("v2 archive did not upgrade to indexed v6 schema");
         const current = await (
           await import("./assets/js/services/backup.js")
         ).createBackup();
-        if (JSON.stringify(current.data) !== JSON.stringify(backup.data))
-          throw Error("v2→v5 upgrade rewrote or lost existing archive data");
+        for (const document of backup.data.documents) {
+          const visit = backup.data.visits.find(
+            (v) => v.id === document.visitId,
+          );
+          if (visit && !("issueDate" in document))
+            document.issueDate = visit.date.slice(0, 10);
+        }
+        if (
+          current.data.documents.some(
+            (document) =>
+              document.issueDate !==
+              backup.data.documents.find((old) => old.id === document.id)
+                ?.issueDate,
+          ) ||
+          JSON.stringify(current.data, (key, value) =>
+            key === "issueDate" ? undefined : value,
+          ) !==
+            JSON.stringify(backup.data, (key, value) =>
+              key === "issueDate" ? undefined : value,
+            )
+        )
+          throw Error("v2→v6 upgrade rewrote or lost existing archive data");
       }, legacy);
       console.log(
-        "PASS populated v2→v5 upgrade preserves records, attachments and unlinked historical follow-ups",
+        "PASS populated v2→v6 upgrade preserves records, attachments and unlinked historical follow-ups",
       );
     } finally {
       await oldContext.close();

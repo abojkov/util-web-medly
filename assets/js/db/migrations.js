@@ -19,8 +19,17 @@ const date = (key, required = false) => ({
   type: "date",
   required,
 });
-export const version4Definitions = {
+export const version5Definitions = {
   ...definitions,
+  documents: {
+    ...definitions.documents,
+    fields: definitions.documents.fields.filter(
+      (field) => field.key !== "issueDate",
+    ),
+  },
+};
+export const version4Definitions = {
+  ...version5Definitions,
   visits: {
     ...definitions.visits,
     fields: [
@@ -33,7 +42,7 @@ export const version4Definitions = {
   },
 };
 export const version2Definitions = {
-  ...definitions,
+  ...version5Definitions,
   visits: {
     ...version4Definitions.visits,
     fields: version4Definitions.visits.fields.filter(
@@ -42,7 +51,7 @@ export const version2Definitions = {
   },
 };
 export const legacyDefinitions = {
-  ...definitions,
+  ...version5Definitions,
   visits: {
     ...definitions.visits,
     fields: [
@@ -234,7 +243,7 @@ export function moveVisitFollowupNotes(visit) {
   return record;
 }
 
-export function migrateVisitNotes(transaction, onError) {
+export function migrateVisitNotes(transaction, onError, onComplete = () => {}) {
   const store = transaction.objectStore("visits");
   store.getAll().onsuccess = (event) => {
     try {
@@ -243,9 +252,39 @@ export function migrateVisitNotes(transaction, onError) {
         validateRecord("visits", migrated);
         if (migrated !== visit) store.put(migrated);
       }
+      onComplete();
     } catch (error) {
       onError(error);
       transaction.abort();
     }
   };
+}
+
+export function withDocumentIssueDates(data) {
+  const visits = new Map(data.visits.map((visit) => [visit.id, visit]));
+  return data.documents.map((document) => {
+    if (Object.hasOwn(document, "issueDate")) return document;
+    const date = visits.get(document.visitId)?.date?.slice(0, 10);
+    return date ? { ...document, issueDate: date } : document;
+  });
+}
+
+export function migrateDocumentDates(transaction, onError) {
+  const data = {};
+  let remaining = 2;
+  for (const name of ["visits", "documents"])
+    transaction.objectStore(name).getAll().onsuccess = (event) => {
+      data[name] = event.target.result;
+      if (--remaining) return;
+      try {
+        withDocumentIssueDates(data).forEach((document, index) => {
+          validateRecord("documents", document);
+          if (document !== data.documents[index])
+            transaction.objectStore("documents").put(document);
+        });
+      } catch (error) {
+        onError(error);
+        transaction.abort();
+      }
+    };
 }

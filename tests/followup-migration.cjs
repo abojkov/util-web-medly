@@ -108,6 +108,10 @@ const backup = {
           delete visit.followUpInstructions;
           delete visit.followUpDate;
         }
+        for (const document of expected.documents) {
+          const visit = expected.visits.find((v) => v.id === document.visitId);
+          if (visit) document.issueDate = visit.date.slice(0, 10);
+        }
         for (const records of Object.values(expected))
           records.sort((a, b) => a.id.localeCompare(b.id));
         const context = await browser.newContext({ serviceWorkers: "block" });
@@ -201,7 +205,7 @@ const backup = {
               [...fixture.data.visits].sort((a, b) => a.id.localeCompare(b.id)),
             );
             console.log(
-              `PASS failed v${oldVersion}→v5 upgrade rolls back records and schema`,
+              `PASS failed v${oldVersion}→v6 upgrade rolls back records and schema`,
             );
           } else {
             await page
@@ -210,7 +214,7 @@ const backup = {
             const exported = await page.evaluate(async () =>
               (await import("./assets/js/services/backup.js")).createBackup(),
             );
-            assert.equal(exported.schemaVersion, 5);
+            assert.equal(exported.schemaVersion, 6);
             assert.deepEqual(exported.data, expected);
             await page.evaluate(async () => {
               const { openDatabase } = await import(
@@ -333,7 +337,7 @@ const backup = {
             );
             assert.deepEqual(restored.data, expected);
             console.log(
-              `PASS v${oldVersion}→v5 preserves legacy advice in notes, episode links, audit timestamps, courses and attachments; old backup restore and strict new writes`,
+              `PASS v${oldVersion}→v6 preserves legacy advice in notes, episode links, audit timestamps, courses and attachments; old backup restore and strict new writes`,
             );
           }
         } finally {
