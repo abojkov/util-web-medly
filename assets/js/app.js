@@ -197,15 +197,18 @@ main.addEventListener("click", async (event) => {
     }
     if (button.dataset.add) {
       const store = button.dataset.add;
-      if (store === "treatments" && button.dataset.visit) {
-        recordForm("treatments", data, undefined, changed, {
+      if (["treatments", "diagnoses"].includes(store) && button.dataset.visit) {
+        const visit = data.visits.find(
+          (visit) => visit.id === button.dataset.visit,
+        );
+        recordForm(store, data, undefined, changed, {
           visitId: button.dataset.visit,
-          startDate: data.visits
-            .find((visit) => visit.id === button.dataset.visit)
-            ?.date.slice(0, 10),
-          doctorId:
-            data.visits.find((visit) => visit.id === button.dataset.visit)
-              ?.doctorId || "",
+          ...(store === "diagnoses"
+            ? { date: visit?.date.slice(0, 10) }
+            : {
+                startDate: visit?.date.slice(0, 10),
+                doctorId: visit?.doctorId || "",
+              }),
         });
         return;
       }
@@ -280,7 +283,9 @@ main.addEventListener("click", async (event) => {
         `Delete ${definitions[store].singular.toLowerCase()}?`,
         store === "treatments"
           ? "This permanently deletes the treatment and removes its links from all visits. Visits and the library medication are kept. This cannot be undone without a backup."
-          : "This permanently removes this record from this device. Linked records must be unlinked first. This cannot be undone without a backup.",
+          : store === "diagnoses"
+            ? "This permanently deletes the diagnosis and removes its links from all visits and treatments. Visits and treatments are kept. This cannot be undone without a backup."
+            : "This permanently removes this record from this device. Linked records must be unlinked first. This cannot be undone without a backup.",
         async () => {
           await deleteRecord(store, button.dataset.delete);
           channel?.postMessage("changed");

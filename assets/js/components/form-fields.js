@@ -11,7 +11,10 @@ export function formFields(store, data, values = {}, prefix = "field-") {
     .filter(
       (field) =>
         field.key !== "parentVisitId" &&
-        !(store === "visits" && field.key === "treatmentIds"),
+        !(
+          store === "visits" &&
+          ["treatmentIds", "diagnosisIds"].includes(field.key)
+        ),
     )
     .map((field) => {
       const value = values[field.key] ?? "";
@@ -65,7 +68,10 @@ export function readFields(store, root, prefix = "field-") {
       .filter(
         (field) =>
           field.key !== "parentVisitId" &&
-          !(store === "visits" && field.key === "treatmentIds"),
+          !(
+            store === "visits" &&
+            ["treatmentIds", "diagnosisIds"].includes(field.key)
+          ),
       )
       .map((field) => {
         const input = root.querySelector(`#${prefix}${field.key}`);

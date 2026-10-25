@@ -3,6 +3,11 @@ import { definitions, STORES } from "./schema.js";
 import { validateRecord } from "../utils/validation.js";
 import { validateVisitHierarchy } from "./relationships.js";
 
+const visitCareFields = {
+  treatments: "treatmentIds",
+  diagnoses: "diagnosisIds",
+};
+
 export const medicationKey = (record) =>
   [record.name, record.strength, record.form]
     .map((value) => (value || "").trim().toLocaleLowerCase())
@@ -88,7 +93,7 @@ export async function saveRecord(store, values, original, related = {}) {
                   }
                 };
             }
-          if (store === "treatments" && related.visitId) {
+          if (visitCareFields[store] && related.visitId) {
             tx.objectStore("visits").get(related.visitId).onsuccess = (
               event,
             ) => {
@@ -96,12 +101,15 @@ export async function saveRecord(store, values, original, related = {}) {
                 const visit = event.target.result;
                 if (!visit)
                   throw new Error(
-                    "This visit no longer exists. Refresh the archive before adding a treatment.",
+                    "This visit no longer exists. Refresh the archive before adding this record.",
                   );
                 const updated = stamp(
                   {
-                    treatmentIds: [
-                      ...new Set([...(visit.treatmentIds || []), record.id]),
+                    [visitCareFields[store]]: [
+                      ...new Set([
+                        ...(visit[visitCareFields[store]] || []),
+                        record.id,
+                      ]),
                     ],
                   },
                   visit,
@@ -123,7 +131,9 @@ export async function saveRecord(store, values, original, related = {}) {
       if (
         store === "visits" &&
         original &&
-        !Object.hasOwn(values, "treatmentIds")
+        Object.values(visitCareFields).some(
+          (key) => !Object.hasOwn(values, key),
+        )
       ) {
         tx.objectStore("visits").get(record.id).onsuccess = (event) => {
           if (!event.target.result) {
@@ -133,7 +143,9 @@ export async function saveRecord(store, values, original, related = {}) {
             tx.abort();
             return;
           }
-          record.treatmentIds = event.target.result.treatmentIds || [];
+          for (const key of Object.values(visitCareFields))
+            if (!Object.hasOwn(values, key))
+              record[key] = event.target.result[key] || [];
           stage();
         };
       } else stage();
@@ -207,52 +219,43 @@ export async function deleteRecord(store, id) {
   try {
     await transaction(STORES, "readwrite", (tx) => {
       for (const [source, definition] of Object.entries(definitions)) {
-        const refs = definition.fields.filter(
-          (field) =>
-            field.store === store &&
-            !(
-              store === "treatments" &&
-              source === "visits" &&
-              field.key === "treatmentIds"
-            ),
-        );
+        const refs = definition.fields.filter((field) => field.store === store);
         if (!refs.length) continue;
         tx.objectStore(source).getAll().onsuccess = (event) => {
-          if (
-            event.target.result.some((record) =>
-              refs.some((field) =>
-                field.multiple
-                  ? record[field.key]?.includes(id)
-                  : record[field.key] === id,
-              ),
-            )
-          ) {
-            blocked = true;
-            tx.abort();
-          }
-        };
-      }
-      if (store === "treatments")
-        tx.objectStore("visits").getAll().onsuccess = (event) => {
           try {
-            for (const visit of event.target.result) {
-              if (!visit.treatmentIds?.includes(id)) continue;
-              const updated = stamp(
-                {
-                  treatmentIds: visit.treatmentIds.filter(
-                    (courseId) => courseId !== id,
-                  ),
-                },
-                visit,
-              );
-              validateRecord("visits", updated);
-              tx.objectStore("visits").put(updated);
+            for (const record of event.target.result) {
+              const changes = {};
+              for (const field of refs) {
+                const linked = field.multiple
+                  ? record[field.key]?.includes(id)
+                  : record[field.key] === id;
+                if (!linked) continue;
+                const mayUnlink =
+                  (source === "visits" &&
+                    field.key === visitCareFields[store]) ||
+                  (store === "diagnoses" &&
+                    source === "treatments" &&
+                    field.key === "diagnosisId");
+                if (!mayUnlink) {
+                  blocked = true;
+                  tx.abort();
+                  return;
+                }
+                changes[field.key] = field.multiple
+                  ? record[field.key].filter((linkedId) => linkedId !== id)
+                  : "";
+              }
+              if (!Object.keys(changes).length) continue;
+              const updated = stamp(changes, record);
+              validateRecord(source, updated);
+              tx.objectStore(source).put(updated);
             }
           } catch (error) {
             validationError = error;
             tx.abort();
           }
         };
+      }
       tx.objectStore(store).delete(id);
     });
   } catch (error) {

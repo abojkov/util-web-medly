@@ -113,7 +113,9 @@ export function detailPage(store, id, data) {
     .filter(
       (f) =>
         record[f.key]?.length &&
-        !(store === "visits" && f.key === "treatmentIds"),
+        !(
+          store === "visits" && ["treatmentIds", "diagnosisIds"].includes(f.key)
+        ),
     )
     .map((field) => {
       let content;
@@ -153,9 +155,12 @@ export function detailPage(store, id, data) {
         record.treatmentIds?.includes(course.id),
       ),
     );
+    const diagnoses = data.diagnoses.filter((diagnosis) =>
+      record.diagnosisIds?.includes(diagnosis.id),
+    );
     const docs = data.documents.filter((d) => d.visitId === id);
     const appointments = data.appointments.filter((a) => a.visitId === id);
-    extra = `<section class="panel mt-4"><div class="panel-heading"><h2>Treatments & prescriptions</h2><button class="btn btn-outline-primary btn-sm" data-add="treatments" data-visit="${id}">${icon("plus")} Add treatment</button></div>${courses.length ? courses.map((course) => recordRow("treatments", course, data)).join("") : emptyState("treatment", "Record the care for this visit", "Add medication courses or non-medication treatments, each with their own instructions.")}</section><section class="panel mt-4"><div class="panel-heading"><h2>Medical documents</h2><button class="btn btn-outline-primary btn-sm" data-add="documents" data-visit="${id}">${icon("plus")} Attach document</button></div>${docs.length ? docs.map((d) => recordRow("documents", d, data)).join("") : emptyState("document", "Keep the paperwork together", "Attach reports, test results, scans, or prescriptions to this visit.")}</section>${appointments.length ? `<section class="panel mt-4"><div class="panel-heading"><h2>Linked appointments</h2></div>${appointments.map((a) => recordRow("appointments", a, data)).join("")}</section>` : ""}`;
+    extra = `<section class="panel mt-4"><div class="panel-heading"><h2>Diagnoses</h2><button class="btn btn-outline-primary btn-sm" data-add="diagnoses" data-visit="${id}">${icon("plus")} Add diagnosis</button></div>${diagnoses.length ? diagnoses.map((diagnosis) => recordRow("diagnoses", diagnosis, data)).join("") : emptyState("diagnosis", "No diagnoses recorded", "Add each diagnosis for this visit separately.")}</section><section class="panel mt-4"><div class="panel-heading"><h2>Treatments & prescriptions</h2><button class="btn btn-outline-primary btn-sm" data-add="treatments" data-visit="${id}">${icon("plus")} Add treatment</button></div>${courses.length ? courses.map((course) => recordRow("treatments", course, data)).join("") : emptyState("treatment", "Record the care for this visit", "Add medication courses or non-medication treatments, each with their own instructions.")}</section><section class="panel mt-4"><div class="panel-heading"><h2>Medical documents</h2><button class="btn btn-outline-primary btn-sm" data-add="documents" data-visit="${id}">${icon("plus")} Attach document</button></div>${docs.length ? docs.map((d) => recordRow("documents", d, data)).join("") : emptyState("document", "Keep the paperwork together", "Attach reports, test results, scans, or prescriptions to this visit.")}</section>${appointments.length ? `<section class="panel mt-4"><div class="panel-heading"><h2>Linked appointments</h2></div>${appointments.map((a) => recordRow("appointments", a, data)).join("")}</section>` : ""}`;
     extra = episodeSection(record, data) + extra;
   }
   if (store === "medications") {
@@ -170,11 +175,10 @@ export function detailPage(store, id, data) {
     );
     extra = `${similar.length ? '<div class="notice mt-4">There are other library entries with this name. Review their strength and form before combining them. Existing entries are never combined automatically.</div>' : ""}<section class="panel mt-4"><div class="panel-heading"><h2>Treatment history · ${courses.length} ${courses.length === 1 ? "course" : "courses"}</h2><button class="btn btn-outline-primary btn-sm" data-add="treatments" data-medication="${id}">New course</button></div>${courses.length ? courses.map((course) => recordRow("treatments", course, data)).join("") : emptyState("treatment", "No courses yet", "Use this medicine in a treatment to record its prescription details.")}</section>${data.medications.length > 1 ? `<section class="panel settings-panel mt-4"><h2>Combine library entries</h2><p>If two entries describe the same product, keep one library entry and move all courses to it. Course dates, dosage, instructions, and visit links are preserved. Review different strengths or forms carefully.</p><button class="btn btn-outline-primary" data-combine-medication="${id}">Review entries to combine</button></section>` : ""}`;
   }
-  if (store === "treatments") {
-    const visits = data.visits.filter((visit) =>
-      visit.treatmentIds?.includes(id),
-    );
-    extra = `<section class="panel mt-4"><div class="panel-heading"><h2>Related medical visits</h2></div>${visits.length ? visits.map((visit) => recordRow("visits", visit, data)).join("") : emptyState("visit", "No visit linked", "To record care for a visit, use Add treatment on that visit’s page.")}</section>`;
+  if (["treatments", "diagnoses"].includes(store)) {
+    const key = store === "diagnoses" ? "diagnosisIds" : "treatmentIds";
+    const visits = data.visits.filter((visit) => visit[key]?.includes(id));
+    extra = `<section class="panel mt-4"><div class="panel-heading"><h2>Related medical visits</h2></div>${visits.length ? visits.map((visit) => recordRow("visits", visit, data)).join("") : emptyState("visit", "No visit linked", `To record ${store === "diagnoses" ? "a diagnosis" : "care"} for a visit, use ${store === "diagnoses" ? "Add diagnosis" : "Add treatment"} on that visit’s page.`)}</section>`;
   }
   if (store === "doctors")
     extra = `<section class="panel mt-4"><div class="panel-heading"><h2>Medical visits</h2></div>${

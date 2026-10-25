@@ -6,8 +6,8 @@ function followUpCard(visit, data, { currentId, matches }) {
   const doctor = data.doctors.find((doctor) => doctor.id === visit.doctorId);
   const fields = [
     ["Symptoms", visit.symptoms],
-    ["Clinical findings", visit.findings],
     ["Tests & procedures", visit.procedures],
+    ["Clinical findings", visit.findings],
     ["Notes", visit.notes],
   ];
   const diagnoses = data.diagnoses.filter((diagnosis) =>

@@ -70,7 +70,11 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
     try {
       let values;
       const related = { medications: [] };
-      if (store === "treatments" && !original && defaults.visitId)
+      if (
+        ["treatments", "diagnoses"].includes(store) &&
+        !original &&
+        defaults.visitId
+      )
         related.visitId = defaults.visitId;
       if (store === "treatments") {
         const draft = editor.read();

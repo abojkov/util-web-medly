@@ -112,9 +112,29 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       },
       {
         doctorId,
-        diagnosisIds: [diagnosisId],
       },
     );
+    await page
+      .getByRole("heading", { name: "Synthetic visit", exact: true })
+      .waitFor();
+    // Existing archives retain their linked treatments after clinical edits.
+    await page.evaluate(
+      async ({ visitId, diagnosisId, treatmentId, medicationCourseId }) => {
+        const { snapshot } = await import("./assets/js/db/database.js");
+        const { saveRecord } = await import("./assets/js/db/repository.js");
+        const visit = (await snapshot()).visits.find((v) => v.id === visitId);
+        await saveRecord(
+          "visits",
+          {
+            diagnosisIds: [diagnosisId],
+            treatmentIds: [treatmentId, medicationCourseId],
+          },
+          visit,
+        );
+      },
+      { visitId, diagnosisId, treatmentId, medicationCourseId },
+    );
+    await page.reload();
     await page
       .getByRole("heading", { name: "Synthetic visit", exact: true })
       .waitFor();
@@ -125,24 +145,6 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         .count(),
       1,
     );
-    // Existing archives retain their linked treatments after clinical edits.
-    await page.evaluate(
-      async ({ visitId, treatmentId, medicationCourseId }) => {
-        const { snapshot } = await import("./assets/js/db/database.js");
-        const { saveRecord } = await import("./assets/js/db/repository.js");
-        const visit = (await snapshot()).visits.find((v) => v.id === visitId);
-        await saveRecord(
-          "visits",
-          { treatmentIds: [treatmentId, medicationCourseId] },
-          visit,
-        );
-      },
-      { visitId, treatmentId, medicationCourseId },
-    );
-    await page.reload();
-    await page
-      .getByRole("heading", { name: "Synthetic visit", exact: true })
-      .waitFor();
     assert.equal(
       await page
         .locator("main")
