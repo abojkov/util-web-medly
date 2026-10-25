@@ -21,11 +21,11 @@ Deploy the repository as a static website over HTTPS, including on GitHub Pages.
 The first version delivers the complete personal archive workflow:
 
 - **Overview:** real counts for visits, diagnoses, active treatments, future scheduled appointments, and documents; recent activity; upcoming care; quick actions; friendly onboarding with no fake data.
-- **Medical visits:** add, edit, delete, and inspect visits. Store date/time, doctor, type, reason, symptoms, clinical findings, tests/procedures, notes, and follow-up instructions/date. Link several diagnoses, treatments, and medications. Show the doctor’s clinic, linked care records, documents, and completed appointments together on the detail page.
+- **Medical visits:** add, edit, delete, and inspect visits. Store date/time, doctor, type, reason, symptoms, clinical findings, tests/procedures, notes, and follow-up instructions/date. Link several diagnoses and treatment courses, including medication prescriptions. Add courses and new library medicines directly in the visit form; everything saves in one transaction. Show the doctor’s clinic, linked care records, documents, and completed appointments together on the detail page.
 - **Search and filters:** case-insensitive partial matching across structured fields and notes. Visit search also includes linked care records, doctor specialty, and clinic name. Filter visits by doctor, specialty, type, and inclusive date range. Sort lists by newest, oldest, or name. Input is debounced by 220 ms and searches a cached snapshot rather than querying IndexedDB on each keystroke.
 - **Diagnoses:** name, date, status (Active, Resolved, Monitoring), optional medical code, notes.
-- **Treatments:** name, status (Active, Completed, Planned, Stopped), start/end dates, diagnosis, instructions, notes.
-- **Medications:** name, dosage, frequency, status (Active, Completed, Stopped, As needed), start/end dates, prescribing doctor, instructions, notes.
+- **Treatments:** one course of care per episode, with name, optional library medication, prescribed dosage, frequency, prescriber, status (Active, Completed, Planned, Stopped, As needed), start/end dates, diagnosis, instructions, and notes. Non-medication care uses the same form without a medicine. Start dates may be left unknown. Existing-treatment selectors show dates, status, dosage, and related visit, newest first. Reusing a previous treatment copies details into a new course, resets status to Active, clears the end date, and uses the new visit date (or today) as its start date. Review the copied prescription before saving.
+- **Medication library:** one reusable product entry with name, optional strength, form, and notes. Dosage, frequency, dates, prescriber, instructions, and status belong to treatment courses. The library shows course counts and the most recent course date; each medicine opens its course history with links back to visits. New entries with the same trimmed, case-insensitive name, strength, and form are rejected in favor of selecting the existing medicine. Distinct strengths/forms remain separate products. Legacy/imported duplicates are preserved until explicitly combined after review; combining moves courses without merging their histories and retains source product details in the kept entry’s notes.
 - **Doctors and clinics:** reusable directories with contact details and notes. Doctors reference clinics; their detail pages show associated visits. Clinic pages show linked doctors.
 - **Documents:** original PDF, JPEG, PNG, and WebP files, maximum **7 MiB (7 × 1024 × 1024 bytes)** each. Files are checked for MIME type, size, and basic signatures and stored as IndexedDB blobs. Each can be linked to one visit, with multiple documents per visit. Add files individually, preview supported formats, edit metadata, download originals, and delete. PDF preview depends on the browser; original download is always available. Compression happens outside Medly.
 - **Appointments:** reason, date/time, doctor, clinic, status (Scheduled, Completed, Cancelled, Missed), notes, optional completed visit. Use Complete appointment to set the status and optionally select an existing medical visit. To record a new visit, create it in Medical visits first and then link it. Scheduled appointments in the past show as overdue on the overview; they are never silently marked missed. Planned tests can be recorded as appointments with their test name as the reason.
@@ -47,7 +47,9 @@ assets/vendor/                Locally bundled Bootstrap 5.3.3 CSS and MIT licens
 assets/js/app.js              Initialization, screen orchestration, UI event handlers
 assets/js/router.js           Hash-based routing
 assets/js/db/schema.js        Entity definitions, fields, versions, indexes
-assets/js/db/database.js      IndexedDB initialization, migrations, transaction helper
+assets/js/db/database.js      IndexedDB initialization and transaction helper
+assets/js/db/migrations.js    Atomic v1→v2 upgrade and legacy backup definitions
+assets/js/db/relationships.js Shared referential integrity checks
 assets/js/db/repository.js    Validated writes and relationship-safe deletes
 assets/js/services/backup.js  Backup encoding, validation, atomic import/merge
 assets/js/services/history.js Derived timeline, upcoming care, snapshot search
@@ -60,46 +62,49 @@ sw.js                         Versioned static application-shell cache
 tests/                        Browser integration and data-safety verification
 ```
 
-The runtime is HTML, Bootstrap CSS, custom CSS, and vanilla ES modules. Native `<dialog>` handles focus trapping and keyboard behavior without a Bootstrap JavaScript dependency. Forms use Bootstrap controls and layouts. A shared entity definition keeps labels, fields, reference selectors, and import validation consistent without creating a framework. Native multi-select controls support multiple diagnoses, treatments, and medications; larger reference directories include a filter input.
+The runtime is HTML, Bootstrap CSS, custom CSS, and vanilla ES modules. Native `<dialog>` handles focus trapping and keyboard behavior without a Bootstrap JavaScript dependency. Forms use Bootstrap controls and layouts. A shared entity definition keeps labels, fields, reference selectors, and import validation consistent without creating a framework. Native multi-select controls support multiple diagnoses and existing treatment courses; larger reference directories include a filter input.
 
 Data access is separate from rendering. UI renders escaped user text; document previews use DOM-created elements and revocable blob URLs. Errors reach a central notification area or remain inline in forms. Writes are considered successful only after transaction commit. There is no silent fallback database.
 
 Search and list rendering use one snapshot per route/change, not per keystroke. This keeps personal archives simple and responsive; very large archives may eventually require pagination, incremental search indexing, and lazy attachment reads. The current snapshot includes document blobs, which are not converted to base64 for everyday use.
 
-## Database schema (version 1)
+## Database schema (version 2)
 
 Database name: `medly`. All stores use `id` (UUID) as their key, plus ISO `createdAt` and `updatedAt` timestamps. Record references are UUIDs, never embedded copies. Optional single references are empty strings; multi-references are arrays of UUIDs.
 
-| Store          | Domain fields                                                                                                                                                                      | Indexes                                    |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `visits`       | `reason`, `date`, `doctorId`, `type`, `symptoms`, `findings`, `procedures`, `diagnosisIds[]`, `treatmentIds[]`, `medicationIds[]`, `followUpInstructions`, `followUpDate`, `notes` | `date`, `doctorId`, `type`, `followUpDate` |
-| `diagnoses`    | `name`, `date`, `status`, `code`, `notes`                                                                                                                                          | `date`, `status`                           |
-| `treatments`   | `name`, `status`, `startDate`, `endDate`, `diagnosisId`, `instructions`, `notes`                                                                                                   | `startDate`, `endDate`, `status`           |
-| `medications`  | `name`, `dosage`, `frequency`, `status`, `startDate`, `endDate`, `doctorId`, `instructions`, `notes`                                                                               | `name`, `status`                           |
-| `doctors`      | `name`, `specialty`, `clinicId`, `phone`, `address`, `notes`                                                                                                                       | `name`, `specialty`, `clinicId`            |
-| `clinics`      | `name`, `type`, `address`, `phone`, `website`, `notes`                                                                                                                             | `name`                                     |
-| `documents`    | `name`, `visitId`, `description`, `type`, `size`, `blob`                                                                                                                           | `visitId`, `createdAt`                     |
-| `appointments` | `reason`, `date`, `clinicId`, `doctorId`, `status`, `visitId`, `notes`                                                                                                             | `date`, `status`, `visitId`                |
+| Store          | Domain fields                                                                                                                                                   | Indexes                                                      |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `visits`       | `reason`, `date`, `doctorId`, `type`, `symptoms`, `findings`, `procedures`, `diagnosisIds[]`, `treatmentIds[]`, `followUpInstructions`, `followUpDate`, `notes` | `date`, `doctorId`, `type`, `followUpDate`                   |
+| `diagnoses`    | `name`, `date`, `status`, `code`, `notes`                                                                                                                       | `date`, `status`                                             |
+| `treatments`   | `name`, `medicationId`, `dosage`, `frequency`, `doctorId`, `status`, `startDate`, `endDate`, `diagnosisId`, `instructions`, `notes`                             | `startDate`, `endDate`, `status`, `medicationId`, `doctorId` |
+| `medications`  | `name`, `strength`, `form`, `notes`                                                                                                                             | `name`                                                       |
+| `doctors`      | `name`, `specialty`, `clinicId`, `phone`, `address`, `notes`                                                                                                    | `name`, `specialty`, `clinicId`                              |
+| `clinics`      | `name`, `type`, `address`, `phone`, `website`, `notes`                                                                                                          | `name`                                                       |
+| `documents`    | `name`, `visitId`, `description`, `type`, `size`, `blob`                                                                                                        | `visitId`, `createdAt`                                       |
+| `appointments` | `reason`, `date`, `clinicId`, `doctorId`, `status`, `visitId`, `notes`                                                                                          | `date`, `status`, `visitId`                                  |
 
 Visit/appointment date-times use local wall-clock values (`YYYY-MM-DDTHH:mm`) representing the intended appointment time. Other clinical dates use `YYYY-MM-DD`; audit timestamps use UTC ISO strings. Medly does not currently model appointment time zones. Dates are displayed according to the browser locale, with date-only records protected against UTC day shifts.
 
 ### Relationships and deletion
 
 - Clinic ← doctors and appointments.
-- Doctor ← visits, medications, and appointments.
+- Doctor ← visits, treatment courses, and appointments.
 - Diagnosis ← visits and treatments.
-- Treatment / medication ← visits.
+- Medication ← treatment courses.
+- Treatment course ← visits.
 - Visit ← documents and completed appointments.
 
 Deleting any referenced record is **blocked**, with an explanation. Nothing is cascaded. Unlink dependent records first, or keep the directory record for historical context. Reference validation and saves/deletes run in transactions spanning the relevant stores, protecting against deletion races. Clearing the archive is a separate, explicitly confirmed transaction.
 
-The initial migration creates stores and indexes additively. Future schema changes must increment `SCHEMA_VERSION`, add explicit migrations, preserve records, update backup support, and test restoration of earlier supported backups. Version 1 imports currently support version 1 only. A database upgrade blocked by another tab is reported; version changes close the old connection and reload that tab.
+The initial migration creates stores and indexes additively. Version 2 separates the medication library from treatment courses. The version-change transaction converts every old medication into a library entry (keeping its ID) and a separate treatment course containing its original dosage, frequency, status, dates, prescriber, instructions, notes, and audit timestamps. Visit medication references become course references, and existing treatments remain linked. Unknown dates stay unknown; dates and courses are never invented from visit dates. Identically named library entries are not automatically combined. Deterministic course IDs make repeated imports of a v1 backup idempotent. Attachments and unrelated records remain intact. Any upgrade failure aborts the entire transaction, leaving the old schema and records in place.
+
+Exports use schema 2; imports accept schema 1 and 2. Version-1 backups are validated against their original schema and relationships before being converted using the same migration. Newer unsupported schemas are rejected. Future schema changes must increment `SCHEMA_VERSION`, preserve records, update backup support, and test earlier supported backups. A database upgrade blocked by another tab is reported; version changes close the old connection and reload that tab.
 
 ## Backup format and recovery
 
 Export produces a JSON object with `format: "medly-backup"`, `schemaVersion`, `appVersion`, `exportedAt`, and a `data` object containing every store. Documents replace their `blob` with `base64` only inside the backup. These backups contain readable sensitive medical information; protect the files accordingly.
 
-Before import, Medly validates the JSON envelope, exact supported schema, required stores, supported fields, UUIDs, timestamps, field types, date ranges, statuses, duplicate IDs, file size/type/signature, and relationships. Invalid backups do not modify the archive. A review dialog shows record and document counts before applying either mode:
+Before import, Medly validates the JSON envelope, supported schema version, required stores, supported fields, UUIDs, timestamps, field types, date ranges, statuses, duplicate IDs, file size/type/signature, and relationships. Invalid backups do not modify the archive. A review dialog shows record and document counts before applying either mode:
 
 - **Merge:** UUID is the identity. New IDs are added. Matching IDs keep the version with the later `updatedAt`; ties preserve the existing record. Independently created records with different UUIDs remain separate even when their names match.
 - **Replace:** the validated backup becomes the whole archive. Requires explicit destructive confirmation.
@@ -116,7 +121,7 @@ IndexedDB and JSON backups are **not encrypted**. Local-first storage does not p
 
 Browser or OS eviction, clearing site data, private browsing cleanup, switching origins, a lost device, or a lost browser profile can make the archive unavailable. Request persistent storage in Settings, but treat regular exported backups as essential. Storage denials, initialization failures, blocked upgrades, transaction failures, and quota errors are surfaced to the user. There is no claim of guaranteed permanent storage.
 
-Cross-tab notifications contain only an invalidation signal, never medical content. Screens refresh after another tab changes data unless a form dialog is open. Records are saved as complete forms; simultaneous edits to the same record are not collaboratively merged. Avoid editing the same record in two tabs at once.
+Cross-tab notifications contain only an invalidation signal, never medical content. Screens refresh after another tab changes data unless a form dialog is open. Visits, draft courses, and new library medicines are saved together atomically. Removing a queued course from an unsaved visit does not delete existing history; unlink saved courses using the Existing treatments selector. Records are saved as complete forms; simultaneous edits to the same record are not collaboratively merged. Avoid editing the same record in two tabs at once.
 
 ## Offline updates
 
@@ -131,9 +136,12 @@ npm install --prefix /tmp/medly-test-tools playwright
 npx --prefix /tmp/medly-test-tools playwright install chromium
 # Start the static server separately, then:
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/browser.cjs
+MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/care.cjs
 ```
 
 The script creates an isolated browser context with synthetic records, never touches a user's normal profile, and checks CRUD, persistence, reference safety, multi-record visits, file validation, backups including attachment bytes and maximum-size files, rejected malformed backups, atomic rollback, search, mobile overflow, and offline shell loading. Screenshots go to a temporary directory. `MEDLY_TEST_URL` may override the default `http://127.0.0.1:8080`. Set `MEDLY_BROWSER=chrome` to use an installed Google Chrome instead of Playwright's downloaded Chromium.
+
+The care suite also checks a populated v1→v2 database upgrade, all legacy prescription fields and attachments, repeated v1 backup imports, explicit library combination, five historical courses sharing one medicine, reuse with fresh dates, inline creation of new medicines and non-medication care, queued draft editing, cancellation without orphan records, independent course edits, duplicate-library prevention, failed visit rollback, v2 backup round trips, and a failed upgrade that rolls back schema, indexes, and records.
 
 The initial implementation was verified with Google Chrome on macOS, including every section at 320px, overview layouts at 390px/768px/1440px, backup export/import controls, and offline reloads. Safari/iPhone has not been verified on a physical device.
 

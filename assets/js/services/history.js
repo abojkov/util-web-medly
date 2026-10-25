@@ -11,7 +11,9 @@ export function events(data) {
         date: record[definitions[store].date] || record.createdAt,
         label:
           store === "treatments"
-            ? "Treatment started"
+            ? record.startDate
+              ? "Treatment started"
+              : "Treatment recorded (start date unknown)"
             : definitions[store].singular,
       });
       if (
@@ -91,6 +93,25 @@ export function searchRecords(data, query, onlyStore) {
         const doctor = data.doctors.find((d) => d.id === record.doctorId);
         const clinic = data.clinics.find((c) => c.id === doctor?.clinicId);
         if (clinic) values.push(clinic.name);
+        for (const course of data.treatments.filter((course) =>
+          record.treatmentIds?.includes(course.id),
+        )) {
+          values.push(
+            course.name,
+            course.dosage || "",
+            course.frequency || "",
+            course.instructions || "",
+          );
+          const medicine = data.medications.find(
+            (medicine) => medicine.id === course.medicationId,
+          );
+          if (medicine)
+            values.push(
+              medicine.name,
+              medicine.strength || "",
+              medicine.form || "",
+            );
+        }
       }
       const haystack = values.join(" ").toLocaleLowerCase();
       if (terms.every((term) => haystack.includes(term)))

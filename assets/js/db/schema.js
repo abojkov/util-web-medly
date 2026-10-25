@@ -1,5 +1,5 @@
-export const APP_VERSION = "1.0.0";
-export const SCHEMA_VERSION = 1;
+export const APP_VERSION = "1.1.0";
+export const SCHEMA_VERSION = 2;
 export const DB_NAME = "medly";
 export const MAX_FILE_SIZE = 7 * 1024 * 1024;
 export const FILE_TYPES = [
@@ -68,8 +68,7 @@ export const definitions = {
       area("findings", "Clinical findings"),
       area("procedures", "Tests & procedures"),
       ref("diagnosisIds", "Diagnoses", "diagnoses", true),
-      ref("treatmentIds", "Treatments", "treatments", true),
-      ref("medicationIds", "Prescribed medications", "medications", true),
+      ref("treatmentIds", "Existing treatments", "treatments", true),
       area("followUpInstructions", "Follow-up instructions"),
       date("followUpDate", "Follow-up date"),
       area("notes", "Notes"),
@@ -96,38 +95,37 @@ export const definitions = {
     icon: "treatment",
     title: "name",
     date: "startDate",
-    description: "Your care plans, all in one place.",
+    description: "Each course of care, with its own dates and instructions.",
     fields: [
       text("name", "Treatment name", { required: true }),
-      select("status", "Status", ["Active", "Completed", "Planned", "Stopped"]),
-      date("startDate", "Start date", true),
-      date("endDate", "End date"),
-      ref("diagnosisId", "Diagnosis", "diagnoses"),
-      area("instructions", "Instructions"),
-      area("notes", "Notes"),
-    ],
-  },
-  medications: {
-    label: "Medications",
-    singular: "Medication",
-    icon: "medication",
-    title: "name",
-    date: "startDate",
-    description: "Keep track of what you take and when.",
-    fields: [
-      text("name", "Medication name", { required: true }),
-      text("dosage", "Dosage"),
+      ref("medicationId", "Medication", "medications"),
+      text("dosage", "Prescribed dosage"),
       text("frequency", "Frequency"),
       select("status", "Status", [
         "Active",
         "Completed",
+        "Planned",
         "Stopped",
         "As needed",
       ]),
       date("startDate", "Start date"),
       date("endDate", "End date"),
       ref("doctorId", "Prescribed by", "doctors"),
+      ref("diagnosisId", "Diagnosis", "diagnoses"),
       area("instructions", "Instructions"),
+      area("notes", "Notes"),
+    ],
+  },
+  medications: {
+    label: "Medication library",
+    singular: "Medication",
+    icon: "medication",
+    title: "name",
+    description: "One entry per medicine. Each course belongs in Treatments.",
+    fields: [
+      text("name", "Medication name", { required: true }),
+      text("strength", "Product strength (optional)"),
+      text("form", "Form (e.g. tablet, liquid)"),
       area("notes", "Notes"),
     ],
   },
@@ -206,8 +204,8 @@ export const STORES = Object.keys(definitions);
 export const indexes = {
   visits: ["date", "doctorId", "type", "followUpDate"],
   diagnoses: ["date", "status"],
-  treatments: ["startDate", "endDate", "status"],
-  medications: ["name", "status"],
+  treatments: ["startDate", "endDate", "status", "medicationId", "doctorId"],
+  medications: ["name"],
   doctors: ["name", "specialty", "clinicId"],
   clinics: ["name"],
   documents: ["visitId", "createdAt"],

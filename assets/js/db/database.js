@@ -1,4 +1,5 @@
 import { DB_NAME, SCHEMA_VERSION, STORES, indexes } from "./schema.js";
+import { migrateDatabase } from "./migrations.js";
 
 let database;
 export function openDatabase() {
@@ -11,7 +12,8 @@ export function openDatabase() {
         ),
       );
     const request = indexedDB.open(DB_NAME, SCHEMA_VERSION);
-    request.onupgradeneeded = () => {
+    let migrationError;
+    request.onupgradeneeded = (event) => {
       const db = request.result;
       // Migration 1: additive schema. Future migrations must preserve existing records.
       for (const name of STORES) {
@@ -22,8 +24,12 @@ export function openDatabase() {
           if (!store.indexNames.contains(index))
             store.createIndex(index, index, { unique: false });
       }
+      if (event.oldVersion === 1)
+        migrateDatabase(request.transaction, (error) => {
+          migrationError = error;
+        });
     };
-    request.onerror = () => reject(request.error);
+    request.onerror = () => reject(migrationError || request.error);
     request.onblocked = () =>
       reject(
         new Error(

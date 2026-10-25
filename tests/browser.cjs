@@ -85,14 +85,20 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       },
       { diagnosisId },
     );
-    const medicationId = await add(
-      "medications",
+    const medicationId = await add("medications", {
+      name: "Synthetic medication",
+      strength: "Test strength",
+      form: "Test form",
+    });
+    const medicationCourseId = await add(
+      "treatments",
       {
         name: "Synthetic medication",
         dosage: "Test dose",
         frequency: "Test frequency",
+        startDate: "2026-01-10",
       },
-      { doctorId },
+      { medicationId, doctorId },
     );
     const visitId = await add(
       "visits",
@@ -108,8 +114,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       {
         doctorId,
         diagnosisIds: [diagnosisId],
-        treatmentIds: [treatmentId],
-        medicationIds: [medicationId],
+        treatmentIds: [treatmentId, medicationCourseId],
       },
     );
     await page

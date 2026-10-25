@@ -4,8 +4,8 @@ export const isUUID = (value) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value,
   );
-export function validateRecord(store, record) {
-  const definition = definitions[store];
+export function validateRecord(store, record, entityDefinitions = definitions) {
+  const definition = entityDefinitions[store];
   if (!definition || !record || !isUUID(record.id))
     throw new Error("Invalid record identifier.");
   for (const key of ["createdAt", "updatedAt"])

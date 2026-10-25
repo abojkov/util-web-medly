@@ -1,6 +1,7 @@
 import { openDatabase, snapshot, clearDatabase } from "./db/database.js";
 import { definitions } from "./db/schema.js";
-import { deleteRecord } from "./db/repository.js";
+import { deleteRecord, combineMedications } from "./db/repository.js";
+import { medicineLabel, medicineChoiceLabel } from "./utils/care.js";
 import { createBackup, parseBackup, importBackup } from "./services/backup.js";
 import { route, initRouter } from "./router.js";
 import { icon } from "./components/icons.js";
@@ -38,7 +39,7 @@ const navItems = [
   ["visits", "Medical visits", "visit"],
   ["diagnoses", "Diagnoses", "diagnosis"],
   ["treatments", "Treatments", "treatment"],
-  ["medications", "Medications", "medication"],
+  ["medications", "Medication library", "medication"],
   ["doctors", "Doctors & clinics", "doctor"],
   ["documents", "Documents", "document"],
   ["timeline", "Health timeline", "timeline"],
@@ -172,6 +173,16 @@ main.addEventListener("click", async (event) => {
   try {
     if (button.dataset.add) {
       const store = button.dataset.add;
+      if (store === "treatments" && button.dataset.visit) {
+        recordForm(
+          "visits",
+          data,
+          data.visits.find((visit) => visit.id === button.dataset.visit),
+          changed,
+          { openTreatment: true },
+        );
+        return;
+      }
       recordForm(
         store,
         data,
@@ -180,8 +191,55 @@ main.addEventListener("click", async (event) => {
           await changed();
           location.hash = `#/${store}/${saved.id}`;
         },
-        button.dataset.visit ? { visitId: button.dataset.visit } : {},
+        button.dataset.visit
+          ? { visitId: button.dataset.visit }
+          : button.dataset.medication
+            ? {
+                medicationId: button.dataset.medication,
+                name: data.medications.find(
+                  (medicine) => medicine.id === button.dataset.medication,
+                )?.name,
+              }
+            : {},
       );
+    }
+    if (button.dataset.combineMedication) {
+      const sourceId = button.dataset.combineMedication;
+      const source = data.medications.find(
+        (medicine) => medicine.id === sourceId,
+      );
+      showDialog(
+        "Combine library entries",
+        `<p>Move courses from <strong>${e(medicineLabel(source))}</strong> into the entry you choose below. Review strength and form. All courses remain separate, and source details are retained in the kept entry’s notes.</p><label class="form-label" for="combine-target">Medication entry to keep</label><select class="form-select" id="combine-target">${data.medications
+          .filter((medicine) => medicine.id !== sourceId)
+          .map(
+            (medicine) =>
+              `<option value="${medicine.id}">${e(medicineChoiceLabel(medicine, data))}</option>`,
+          )
+          .join(
+            "",
+          )}</select><div class="dialog-actions"><button class="btn btn-light" id="combine-cancel">Cancel</button><button class="btn btn-primary" id="combine-review">Review combination</button></div>`,
+      );
+      document.querySelector("#combine-cancel").onclick = closeDialog;
+      document.querySelector("#combine-review").onclick = () => {
+        const targetId = document.querySelector("#combine-target").value;
+        const target = data.medications.find(
+          (medicine) => medicine.id === targetId,
+        );
+        confirmAction(
+          "Combine these medication entries?",
+          `Keep “${medicineLabel(target)}” and remove “${medicineLabel(source)}” from the library. Move its courses to the kept entry without combining or deleting any treatment history.`,
+          async () => {
+            await combineMedications(sourceId, targetId);
+            await changed();
+            location.hash = `#/medications/${targetId}`;
+            notify(
+              "Library entries combined. All treatment courses were preserved.",
+            );
+          },
+          "Combine entries",
+        );
+      };
     }
     if (button.dataset.edit)
       recordForm(

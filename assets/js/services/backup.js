@@ -6,30 +6,9 @@ import {
   definitions,
 } from "../db/schema.js";
 import { validateRecord, validateFile } from "../utils/validation.js";
-
-export function validateRelationships(data) {
-  const ids = Object.fromEntries(
-    STORES.map((store) => [
-      store,
-      new Set(data[store].map((record) => record.id)),
-    ]),
-  );
-  for (const store of STORES)
-    for (const record of data[store])
-      for (const field of definitions[store].fields.filter(
-        (f) => f.type === "reference",
-      )) {
-        const refs = field.multiple
-          ? record[field.key] || []
-          : record[field.key]
-            ? [record[field.key]]
-            : [];
-        if (refs.some((id) => !ids[field.store].has(id)))
-          throw new Error(
-            "A record refers to a missing record. The backup cannot be imported safely.",
-          );
-      }
-}
+import { validateRelationships } from "../db/relationships.js";
+import { legacyDefinitions, migrateV1 } from "../db/migrations.js";
+export { validateRelationships } from "../db/relationships.js";
 
 async function encodeBlob(blob) {
   const bytes = new Uint8Array(await blob.arrayBuffer());
@@ -64,12 +43,16 @@ export async function parseBackup(input) {
   if (
     !backup ||
     backup.format !== "medly-backup" ||
-    backup.schemaVersion !== SCHEMA_VERSION ||
+    ![1, SCHEMA_VERSION].includes(backup.schemaVersion) ||
     !backup.data ||
     typeof backup.appVersion !== "string" ||
     !Number.isFinite(Date.parse(backup.exportedAt))
   )
-    throw new Error("This is not a supported Medly backup (schema version 1).");
+    throw new Error(
+      "This is not a supported Medly backup (schema versions 1 and 2).",
+    );
+  const entityDefinitions =
+    backup.schemaVersion === 1 ? legacyDefinitions : definitions;
   const data = {};
   for (const store of STORES) {
     if (!Array.isArray(backup.data[store]))
@@ -83,7 +66,7 @@ export async function parseBackup(input) {
         "id",
         "createdAt",
         "updatedAt",
-        ...definitions[store].fields.map((f) => f.key),
+        ...entityDefinitions[store].fields.map((f) => f.key),
         ...(store === "documents" ? ["type", "size", "base64"] : []),
       ]);
       if (Object.keys(source).some((key) => !allowed.has(key)))
@@ -111,15 +94,15 @@ export async function parseBackup(input) {
         delete record.base64;
         await validateFile(record.blob);
       }
-      validateRecord(store, record);
+      validateRecord(store, record, entityDefinitions);
       if (ids.has(record.id))
         throw new Error("The backup contains duplicate identifiers.");
       ids.add(record.id);
       data[store].push(record);
     }
   }
-  validateRelationships(data);
-  return data;
+  validateRelationships(data, entityDefinitions);
+  return backup.schemaVersion === 1 ? migrateV1(data) : data;
 }
 
 export async function importBackup(data, mode) {
