@@ -311,7 +311,7 @@ main.addEventListener("click", async (event) => {
       if (preview.tagName === "IMG") preview.alt = doc.description || doc.name;
       else {
         preview.title = doc.name;
-        preview.setAttribute("sandbox", "allow-same-origin");
+        // Native PDF viewers provide their own isolation; iframe sandbox blocks Chrome’s viewer.
       }
       target.append(preview);
       if (doc.type === "application/pdf") {
@@ -319,7 +319,13 @@ main.addEventListener("click", async (event) => {
         hint.className = "form-text";
         hint.textContent =
           "PDF preview depends on your browser. If it does not display, use Download original.";
-        target.append(hint);
+        const open = document.createElement("a");
+        open.href = previewURL;
+        open.target = "_blank";
+        open.rel = "noopener noreferrer";
+        open.className = "btn btn-outline-primary btn-sm";
+        open.textContent = "Open PDF in new tab";
+        target.append(hint, open);
       }
     }
     if (button.dataset.complete) {
