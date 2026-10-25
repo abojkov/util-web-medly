@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#cc2878" />
+    <meta
+      name="description"
+      content="Your private, local-first health archive. Organize medical visits, treatments, and documents on your device."
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; connect-src 'self'; base-uri 'self'; form-action 'self'"
+    />
+    <title>Medly · Your health, together</title>
+    <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./assets/vendor/bootstrap.min.css" />
+    <link rel="stylesheet" href="./assets/css/app.css" />
+    <script type="module" src="./assets/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <aside class="sidebar" aria-label="Main navigation">
+      <a href="#/dashboard" class="brand"
+        ><span class="brand-icon" aria-hidden="true">✚</span> medly<span
+          class="brand-dot"
+          >.</span
+        ></a
+      >
+      <p class="sidebar-caption">YOUR PERSONAL HEALTH SPACE</p>
+      <nav id="desktop-nav"></nav>
+      <div class="sidebar-bottom">
+        <span class="privacy-dot"></span
+        ><strong>Personal. Private. Yours.</strong>
+        <p>Your records stay on this device.</p>
+        <a href="#/settings"
+          >Storage & backups <span aria-hidden="true">↗</span></a
+        >
+      </div>
+    </aside>
+    <div class="app-shell">
+      <header class="topbar">
+        <span class="mobile-brand">✚ medly.</span
+        ><span class="desktop-label"
+          >A little more clarity. A little more care.</span
+        ><button
+          class="search-trigger"
+          id="open-search"
+          aria-label="Search all medical records"
+        >
+          <span aria-hidden="true">⌕</span><span>Search your records</span
+          ><kbd>/</kbd></button
+        ><span class="local-label"
+          ><span class="privacy-dot"></span> On-device storage</span
+        >
+      </header>
+      <main id="main" tabindex="-1">
+        <div class="loading-state" role="status">
+          Opening your health archive…
+        </div>
+      </main>
+      <footer class="page-footer">
+        Made for your peace of mind.
+        <span>Your health story belongs to you.</span>
+      </footer>
+    </div>
+    <nav
+      class="bottom-nav"
+      id="mobile-nav"
+      aria-label="Mobile navigation"
+    ></nav>
+    <dialog
+      id="modal"
+      class="medly-dialog"
+      aria-labelledby="modal-title"
+    ></dialog>
+    <div
+      id="notifications"
+      class="notifications"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+    <noscript
+      ><div class="fatal">
+        Medly needs JavaScript to store your records securely on this device.
+        Please enable JavaScript.
+      </div></noscript
+    >
+  </body>
+</html>
