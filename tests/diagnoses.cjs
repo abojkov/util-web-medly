@@ -88,6 +88,100 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     console.log(
       "PASS visit forms omit diagnosis selector; separate mobile diagnosis modal, date defaults, cancellation, linked history, and independent editing",
     );
+    const scopeFixture = await page.evaluate(
+      async ({ visitId }) => {
+        const { saveRecord } = await import("./assets/js/db/repository.js");
+        const outside = await saveRecord("diagnoses", {
+          name: "Unrelated diagnosis",
+          date: "2026-03-01",
+          status: "Active",
+        });
+        const old = await saveRecord("treatments", {
+          name: "Historical outside care",
+          status: "Completed",
+          diagnosisId: outside.id,
+        });
+        const legacy = await saveRecord(
+          "treatments",
+          {
+            name: "Existing outside link",
+            status: "Active",
+            diagnosisId: outside.id,
+          },
+          undefined,
+          { visitId },
+        );
+        return { outsideId: outside.id, oldId: old.id, legacyId: legacy.id };
+      },
+      { visitId },
+    );
+    await page.goto(`${baseURL}/#/visits/${visitId}`);
+    await page.locator('[data-add="treatments"]').click();
+    assert.deepEqual(
+      await page
+        .locator("#field-diagnosisId option")
+        .evaluateAll((options) => options.map((o) => o.value)),
+      ["", diagnosisId],
+    );
+    await page.locator("#field-reuse").selectOption(scopeFixture.oldId);
+    assert.equal(await page.locator("#field-diagnosisId").inputValue(), "");
+    await page.locator("#field-diagnosisId").selectOption(diagnosisId);
+    await save();
+    const scopedCourseId = await page.evaluate(
+      async ({ visitId, oldId }) => {
+        const data = await (
+          await import("./assets/js/db/database.js")
+        ).snapshot();
+        return data.treatments.find(
+          (c) =>
+            c.id !== oldId &&
+            c.name === "Historical outside care" &&
+            data.visits
+              .find((v) => v.id === visitId)
+              .treatmentIds.includes(c.id),
+        ).id;
+      },
+      { visitId, oldId: scopeFixture.oldId },
+    );
+    await page.goto(`${baseURL}/#/treatments/${scopedCourseId}`);
+    await page.locator('[data-edit][data-store="treatments"]').click();
+    assert.deepEqual(
+      await page
+        .locator("#field-diagnosisId option")
+        .evaluateAll((options) => options.map((o) => o.value)),
+      ["", diagnosisId],
+    );
+    assert.equal(
+      await page.locator("#field-diagnosisId").inputValue(),
+      diagnosisId,
+    );
+    await page.locator("#form-cancel").click();
+    await page.goto(`${baseURL}/#/treatments/${scopeFixture.legacyId}`);
+    await page.locator('[data-edit][data-store="treatments"]').click();
+    assert.equal(
+      await page.locator("#field-diagnosisId").inputValue(),
+      scopeFixture.outsideId,
+    );
+    assert(
+      (
+        await page.locator("#field-diagnosisId option:checked").textContent()
+      ).includes("current link outside this visit"),
+    );
+    await save();
+    await page.goto(`${baseURL}/#/treatments`);
+    await page.locator('[data-add="treatments"]').first().click();
+    assert.deepEqual(
+      await page
+        .locator("#field-diagnosisId option")
+        .evaluateAll((options) => options.map((o) => o.value)),
+      [""],
+    );
+    await page.locator("#form-cancel").click();
+    await page.goto(`${baseURL}/#/diagnoses/${diagnosisId}`);
+    await page.locator('[data-delete][data-store="diagnoses"]').waitFor();
+    console.log(
+      "PASS treatment diagnosis choices scoped on create/edit, unrelated reused diagnoses cleared, historical links retained, and standalone creation has no global selector",
+    );
     const fixture = await page.evaluate(
       async ({ visitId, diagnosisId }) => {
         const { snapshot } = await import("./assets/js/db/database.js");

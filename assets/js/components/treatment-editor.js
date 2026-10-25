@@ -15,7 +15,42 @@ export function treatmentEditor(
     status: "Active",
     ...initial,
   };
+  const visits = data.visits.filter((visit) =>
+    initial.visitId
+      ? visit.id === initial.visitId
+      : initial.id && visit.treatmentIds?.includes(initial.id),
+  );
+  const diagnosisIds = new Set(
+    visits.flatMap((visit) => visit.diagnosisIds || []),
+  );
+  const diagnosisData = {
+    ...data,
+    diagnoses: data.diagnoses.filter((diagnosis) =>
+      diagnosisIds.has(diagnosis.id),
+    ),
+  };
   function render(values) {
+    // Keep an existing historical link visible without offering unrelated records.
+    const historical =
+      initial.id &&
+      values.diagnosisId === initial.diagnosisId &&
+      !diagnosisIds.has(values.diagnosisId)
+        ? data.diagnoses.find(
+            (diagnosis) => diagnosis.id === values.diagnosisId,
+          )
+        : undefined;
+    const choices = historical
+      ? {
+          ...diagnosisData,
+          diagnoses: [
+            ...diagnosisData.diagnoses,
+            {
+              ...historical,
+              name: `${historical.name} (current link outside this visit)`,
+            },
+          ],
+        }
+      : diagnosisData;
     root.innerHTML = `<label class="form-label" for="${prefix}reuse">Reuse a previous treatment (optional)</label><select class="form-select mb-3" id="${prefix}reuse"><option value="">Start a new course</option>${newestCourses(
       data.treatments,
     )
@@ -25,7 +60,16 @@ export function treatmentEditor(
       )
       .join(
         "",
-      )}</select><p class="form-text">Each course has its own prescription details. Review copied details before saving.</p><div class="row g-3">${formFields("treatments", data, values, prefix)}</div><fieldset class="new-medicine-fields mt-3" id="${prefix}new-medicine" hidden disabled><legend>New library medicine</legend><div class="row g-3">${formFields("medications", data, {}, `${prefix}medicine-`)}</div></fieldset>`;
+      )}</select><p class="form-text">Each course has its own prescription details. Review copied details before saving.</p><div class="row g-3">${formFields("treatments", choices, values, prefix)}</div><fieldset class="new-medicine-fields mt-3" id="${prefix}new-medicine" hidden disabled><legend>New library medicine</legend><div class="row g-3">${formFields("medications", data, {}, `${prefix}medicine-`)}</div></fieldset>`;
+    const diagnosisSelect = root.querySelector(`#${prefix}diagnosisId`);
+    const hint = document.createElement("small");
+    hint.className = "form-text";
+    hint.textContent = visits.length
+      ? diagnosisData.diagnoses.length
+        ? "Choose a diagnosis recorded for this treatment’s visit."
+        : "No diagnoses recorded for this visit. Add diagnoses from the visit page first."
+      : "Add this treatment from a visit to choose one of that visit’s diagnoses.";
+    diagnosisSelect.parentElement.append(hint);
     bindFieldSearch(root);
     const medicineSelect = root.querySelector(`#${prefix}medicationId`);
     const newMedicine = root.querySelector(`#${prefix}new-medicine`);
@@ -72,7 +116,7 @@ export function treatmentEditor(
           dosage,
           frequency,
           doctorId,
-          diagnosisId,
+          diagnosisId: diagnosisIds.has(diagnosisId) ? diagnosisId : "",
           instructions,
           notes,
           startDate: fresh.startDate,

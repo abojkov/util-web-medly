@@ -52,7 +52,11 @@ export function formFields(store, data, values = {}, prefix = "field-") {
         if (
           field.type === "reference" &&
           !options.length &&
-          !["medicationId", "parentVisitId"].includes(field.key)
+          ![
+            "medicationId",
+            "parentVisitId",
+            ...(store === "treatments" ? ["diagnosisId"] : []),
+          ].includes(field.key)
         )
           input +=
             '<small class="form-text">You can add and link these later.</small>';

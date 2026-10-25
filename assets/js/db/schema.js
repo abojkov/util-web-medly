@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.4.2";
+export const APP_VERSION = "1.4.3";
 export const SCHEMA_VERSION = 5;
 export const DB_NAME = "medly";
 export const MAX_FILE_SIZE = 7 * 1024 * 1024;
