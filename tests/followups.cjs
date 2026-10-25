@@ -93,22 +93,24 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
           .fill(
             '<img src=x onerror="window.__unsafeFollowup=true"> Unique recovery note',
           );
-        await page.locator("#new-visit-treatment").click();
-        await page.locator("#course-medicationId").selectOption("__new__");
-        await page
-          .locator("#course-medicine-name")
-          .fill("Synthetic episode medicine");
-        await page.locator("#course-dosage").fill("Synthetic recorded dose");
-        await page
-          .locator("#course-frequency")
-          .fill("Synthetic recorded frequency");
-        await page
-          .locator("#course-instructions")
-          .fill("Synthetic instructions visible inside the episode");
-        await page.locator("#queue-treatment").click();
       }
       await save();
       await page.getByRole("heading", { name: reason, exact: true }).waitFor();
+      if (first) {
+        await page.locator('[data-add="treatments"]').click();
+        await page.locator("#field-medicationId").selectOption("__new__");
+        await page
+          .locator("#field-medicine-name")
+          .fill("Synthetic episode medicine");
+        await page.locator("#field-dosage").fill("Synthetic recorded dose");
+        await page
+          .locator("#field-frequency")
+          .fill("Synthetic recorded frequency");
+        await page
+          .locator("#field-instructions")
+          .fill("Synthetic instructions visible inside the episode");
+        await save();
+      }
       return page.evaluate(() => location.hash.split("/")[2]);
     };
     const firstId = await addFollowup(

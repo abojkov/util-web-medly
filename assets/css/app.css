@@ -1782,7 +1782,6 @@ input[type="datetime-local"] {
   }
 }
 
-.treatment-draft,
 .new-medicine-fields {
   min-width: 0;
   padding: 18px;
@@ -1796,24 +1795,6 @@ input[type="datetime-local"] {
   padding: 0 6px;
   font-size: 13px;
   font-weight: 600;
-}
-.pending-course {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 12px;
-}
-.pending-course span {
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.pending-course .btn {
-  flex-shrink: 0;
 }
 .episode-section {
   padding-bottom: 12px;
@@ -2005,12 +1986,7 @@ input[type="datetime-local"] {
   overflow-wrap: anywhere;
 }
 @media (max-width: 767px) {
-  .treatment-draft,
   .new-medicine-fields {
     padding: 12px;
-  }
-  .pending-course {
-    align-items: flex-start;
-    flex-wrap: wrap;
   }
 }

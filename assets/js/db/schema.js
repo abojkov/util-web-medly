@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.4.0";
+export const APP_VERSION = "1.4.1";
 export const SCHEMA_VERSION = 5;
 export const DB_NAME = "medly";
 export const MAX_FILE_SIZE = 7 * 1024 * 1024;
@@ -69,7 +69,7 @@ export const definitions = {
       area("findings", "Clinical findings"),
       area("procedures", "Tests & procedures"),
       ref("diagnosisIds", "Diagnoses", "diagnoses", true),
-      ref("treatmentIds", "Existing treatments", "treatments", true),
+      ref("treatmentIds", "Treatments", "treatments", true),
       // Retain two former 20,000-character fields plus migration labels.
       { ...area("notes", "Notes"), maxLength: 40100 },
     ],

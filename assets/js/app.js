@@ -198,13 +198,15 @@ main.addEventListener("click", async (event) => {
     if (button.dataset.add) {
       const store = button.dataset.add;
       if (store === "treatments" && button.dataset.visit) {
-        recordForm(
-          "visits",
-          data,
-          data.visits.find((visit) => visit.id === button.dataset.visit),
-          changed,
-          { openTreatment: true },
-        );
+        recordForm("treatments", data, undefined, changed, {
+          visitId: button.dataset.visit,
+          startDate: data.visits
+            .find((visit) => visit.id === button.dataset.visit)
+            ?.date.slice(0, 10),
+          doctorId:
+            data.visits.find((visit) => visit.id === button.dataset.visit)
+              ?.doctorId || "",
+        });
         return;
       }
       recordForm(
@@ -276,7 +278,9 @@ main.addEventListener("click", async (event) => {
       const store = button.dataset.store;
       confirmAction(
         `Delete ${definitions[store].singular.toLowerCase()}?`,
-        "This permanently removes this record from this device. Linked records must be unlinked first. This cannot be undone without a backup.",
+        store === "treatments"
+          ? "This permanently deletes the treatment and removes its links from all visits. Visits and the library medication are kept. This cannot be undone without a backup."
+          : "This permanently removes this record from this device. Linked records must be unlinked first. This cannot be undone without a backup.",
         async () => {
           await deleteRecord(store, button.dataset.delete);
           channel?.postMessage("changed");

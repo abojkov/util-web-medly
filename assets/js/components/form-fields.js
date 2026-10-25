@@ -8,7 +8,11 @@ import {
 import { visitLabel } from "../utils/visits.js";
 export function formFields(store, data, values = {}, prefix = "field-") {
   return definitions[store].fields
-    .filter((field) => field.key !== "parentVisitId")
+    .filter(
+      (field) =>
+        field.key !== "parentVisitId" &&
+        !(store === "visits" && field.key === "treatmentIds"),
+    )
     .map((field) => {
       const value = values[field.key] ?? "";
       const id = `${prefix}${field.key}`;
@@ -58,7 +62,11 @@ export function formFields(store, data, values = {}, prefix = "field-") {
 export function readFields(store, root, prefix = "field-") {
   return Object.fromEntries(
     definitions[store].fields
-      .filter((field) => field.key !== "parentVisitId")
+      .filter(
+        (field) =>
+          field.key !== "parentVisitId" &&
+          !(store === "visits" && field.key === "treatmentIds"),
+      )
       .map((field) => {
         const input = root.querySelector(`#${prefix}${field.key}`);
         return [

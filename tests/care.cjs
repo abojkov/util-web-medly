@@ -260,44 +260,50 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       "PASS confirmed library combination preserves all courses, metadata and visit links",
     );
 
-    // New visit: reuse the latest course, reset episode dates/status, and keep one library item.
+    // Save a new visit, then reuse the latest course, reset episode dates/status, and keep one library item.
     await page.goto(`${baseURL}/#/visits`);
     await page.locator('[data-add="visits"]').first().click();
     await page.locator("#field-reason").fill("Synthetic repeat episode");
     await page.locator("#field-date").fill("2026-03-01T09:00");
     assert.equal(await page.locator("#field-medicationIds").count(), 0);
-    await page.locator("#new-visit-treatment").click();
+    assert.equal(
+      await page
+        .locator("#field-treatmentIds, .visit-treatment-section")
+        .count(),
+      0,
+    );
+    await page.locator('#record-form button[type="submit"]').click();
+    await page.waitForFunction(() => !document.querySelector("#modal").open);
+    await page
+      .getByRole("heading", { name: "Synthetic repeat episode", exact: true })
+      .waitFor();
+    await page.locator('[data-add="treatments"]').click();
+    await page
+      .getByRole("heading", { name: "Add treatment", exact: true })
+      .waitFor();
+    assert.equal(
+      await page.locator("#field-reason, #field-treatmentIds").count(),
+      0,
+    );
     const reuseOptions = await page
-      .locator("#course-reuse option")
+      .locator("#field-reuse option")
       .allTextContents();
     assert(
       reuseOptions[1].includes("Jan 5") || reuseOptions[1].includes("5 Jan"),
       "Latest course should be first",
     );
-    await page.locator("#course-reuse").selectOption({ index: 1 });
+    await page.locator("#field-reuse").selectOption({ index: 1 });
     assert.equal(
-      await page.locator("#course-dosage").inputValue(),
+      await page.locator("#field-dosage").inputValue(),
       "Original dose 5",
     );
     assert.equal(
-      await page.locator("#course-startDate").inputValue(),
+      await page.locator("#field-startDate").inputValue(),
       "2026-03-01",
     );
-    assert.equal(await page.locator("#course-endDate").inputValue(), "");
-    assert.equal(await page.locator("#course-status").inputValue(), "Active");
-    await page.locator("#course-dosage").fill("New episode dose");
-    await page.locator("#queue-treatment").click();
-    await page.locator("[data-edit-course]").click();
-    assert.equal(
-      await page.locator("#course-dosage").inputValue(),
-      "New episode dose",
-    );
-    await page.locator("#queue-treatment").click();
-    assert.equal(
-      await page.locator(".pending-course").count(),
-      1,
-      "Editing a queued course must not duplicate it",
-    );
+    assert.equal(await page.locator("#field-endDate").inputValue(), "");
+    assert.equal(await page.locator("#field-status").inputValue(), "Active");
+    await page.locator("#field-dosage").fill("New episode dose");
     await page.locator('#record-form button[type="submit"]').click();
     await page.waitForFunction(() => !document.querySelector("#modal").open);
     await page
@@ -325,22 +331,23 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       return course.id;
     }, newVisitId);
 
-    // From the visit detail: new medication and course, plus non-medication care, save together.
+    // From the visit detail, create each treatment in its own modal.
     await page.locator('[data-add="treatments"]').click();
-    await page.locator("#course-medicationId").selectOption("__new__");
+    await page.locator("#field-medicationId").selectOption("__new__");
     await page
-      .locator("#course-medicine-name")
+      .locator("#field-medicine-name")
       .fill("Second synthetic medicine");
-    await page.locator("#course-medicine-strength").fill("Synthetic strength");
-    await page.locator("#course-medicine-form").fill("Synthetic form");
-    await page.locator("#course-dosage").fill("Synthetic new prescription");
-    await page.locator("#queue-treatment").click();
-    await page.locator("#new-visit-treatment").click();
-    await page.locator("#course-name").fill("Synthetic physiotherapy course");
+    await page.locator("#field-medicine-strength").fill("Synthetic strength");
+    await page.locator("#field-medicine-form").fill("Synthetic form");
+    await page.locator("#field-dosage").fill("Synthetic new prescription");
+    await page.locator('#record-form button[type="submit"]').click();
+    await page.waitForFunction(() => !document.querySelector("#modal").open);
+    await page.locator('[data-add="treatments"]').click();
+    await page.locator("#field-name").fill("Synthetic physiotherapy course");
     await page
-      .locator("#course-instructions")
+      .locator("#field-instructions")
       .fill("Synthetic care instructions");
-    // Saving an open editor also includes its draft.
+    // Save this treatment directly.
     await page.locator('#record-form button[type="submit"]').click();
     await page.waitForFunction(() => !document.querySelector("#modal").open);
     await page
@@ -355,15 +362,13 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         data.medications.length !== 2 ||
         data.visits.find((visit) => visit.id === id).treatmentIds.length !== 3
       )
-        throw Error(
-          "Inline course/medicine/non-medication care not saved together",
-        );
+        throw Error("Separate treatments were not linked to the visit");
     }, newVisitId);
     console.log(
-      "PASS inline visit courses, reuse with fresh dates, new library medicine and non-medication care",
+      "PASS separate visit treatment modals, reuse with fresh dates, new library medicine and non-medication care",
     );
 
-    // Cancelling a visit with a queued new medicine must not leave orphan records.
+    // Cancelling the treatment modal must not leave orphan records.
     const counts = () =>
       page.evaluate(async () =>
         Object.fromEntries(
@@ -373,13 +378,11 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         ),
       );
     const beforeCancel = await counts();
-    await page.locator("[data-edit]").click();
-    await page.locator("#new-visit-treatment").click();
-    await page.locator("#course-medicationId").selectOption("__new__");
+    await page.locator('[data-add="treatments"]').click();
+    await page.locator("#field-medicationId").selectOption("__new__");
     await page
-      .locator("#course-medicine-name")
+      .locator("#field-medicine-name")
       .fill("Uncommitted synthetic medicine");
-    await page.locator("#queue-treatment").click();
     page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#form-cancel").click();
     assert.deepEqual(await counts(), beforeCancel);
@@ -427,24 +430,17 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       rejected = false;
       try {
         await saveRecord(
-          "visits",
+          "treatments",
           {
-            reason: "Should roll back",
-            date: "2026-03-03T09:00",
-            type: "Other",
-            treatmentIds: [treatmentId],
+            id: treatmentId,
+            name: "Rollback course",
+            medicationId: medicineId,
+            status: "Active",
           },
           undefined,
           {
             medications: [{ id: medicineId, name: "Rollback medicine" }],
-            treatments: [
-              {
-                id: treatmentId,
-                name: "Rollback course",
-                medicationId: medicineId,
-                status: "Active",
-              },
-            ],
+            visitId: before.visits[0].id,
           },
         );
       } catch {
@@ -483,7 +479,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await page.setViewportSize({ width: 320, height: 750 });
     await page.goto(`${baseURL}/#/visits/${newVisitId}`);
     await page.locator('[data-add="treatments"]').click();
-    await page.locator("#course-medicationId").selectOption("__new__");
+    await page.locator("#field-medicationId").selectOption("__new__");
     assert(
       await page
         .locator("#modal")
@@ -511,7 +507,127 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     });
     assert.deepEqual(errors, []);
     console.log(
-      "PASS 320px inline editor and medication course history; no browser errors",
+      "PASS 320px treatment modal and medication course history; no browser errors",
+    );
+
+    // Clinical edits preserve links changed after the form opened. Deletion is atomic.
+    const deletionState = await page.evaluate(
+      async ({ courseId, newVisitId }) => {
+        const { snapshot } = await import("./assets/js/db/database.js");
+        const { saveRecord, deleteRecord } = await import(
+          "./assets/js/db/repository.js"
+        );
+        const initial = await snapshot();
+        const stale = initial.visits.find((v) => v.id === newVisitId);
+        const extra = await saveRecord(
+          "treatments",
+          { name: "Concurrent care", status: "Active" },
+          undefined,
+          { visitId: newVisitId },
+        );
+        await saveRecord(
+          "visits",
+          { notes: "Clinical edit from stale form" },
+          stale,
+        );
+        if (
+          !(await snapshot()).visits
+            .find((v) => v.id === newVisitId)
+            .treatmentIds.includes(extra.id)
+        )
+          throw Error("Clinical edit lost new treatment link");
+        const sibling = await saveRecord("visits", {
+          reason: "Historical shared treatment",
+          date: "2026-03-02T10:00",
+          type: "Other",
+          treatmentIds: [courseId],
+        });
+        const before = await snapshot();
+        const put = IDBObjectStore.prototype.put;
+        IDBObjectStore.prototype.put = function (...args) {
+          if (this.name === "visits")
+            throw new DOMException(
+              "Synthetic delete failure",
+              "QuotaExceededError",
+            );
+          return put.apply(this, args);
+        };
+        let failed = false;
+        try {
+          await deleteRecord("treatments", courseId);
+        } catch {
+          failed = true;
+        } finally {
+          IDBObjectStore.prototype.put = put;
+        }
+        if (
+          !failed ||
+          JSON.stringify(await snapshot()) !== JSON.stringify(before)
+        )
+          throw Error(
+            "Treatment delete failure did not roll back links and treatment",
+          );
+        failed = false;
+        try {
+          await saveRecord(
+            "treatments",
+            { name: "Missing visit care", status: "Active" },
+            undefined,
+            { visitId: crypto.randomUUID() },
+          );
+        } catch {
+          failed = true;
+        }
+        if (
+          !failed ||
+          JSON.stringify(await snapshot()) !== JSON.stringify(before)
+        )
+          throw Error("Missing visit left orphan treatment");
+        return {
+          siblingId: sibling.id,
+          medicineId: before.treatments.find((c) => c.id === courseId)
+            .medicationId,
+          stale,
+        };
+      },
+      { courseId, newVisitId },
+    );
+    await page.goto(`${baseURL}/#/treatments/${courseId}`);
+    await page.locator("[data-delete]").click();
+    await page.getByText(/removes its links from all visits/).waitFor();
+    await page.locator("#confirm-action").click();
+    await page.waitForFunction(() => !document.querySelector("#modal").open);
+    await page.evaluate(
+      async ({ courseId, deletionState }) => {
+        const { snapshot } = await import("./assets/js/db/database.js");
+        const { saveRecord } = await import("./assets/js/db/repository.js");
+        const data = await snapshot();
+        if (
+          data.treatments.some((c) => c.id === courseId) ||
+          data.visits.some((v) => v.treatmentIds?.includes(courseId))
+        )
+          throw Error("Deleted treatment or dangling links remain");
+        if (
+          !data.medications.some((m) => m.id === deletionState.medicineId) ||
+          !data.visits.some((v) => v.id === deletionState.siblingId)
+        )
+          throw Error("Treatment deletion removed medicine or visit");
+        await saveRecord(
+          "visits",
+          { notes: "Edit after treatment deletion" },
+          deletionState.stale,
+        );
+        if (
+          (await snapshot()).visits.some((v) =>
+            v.treatmentIds?.includes(courseId),
+          )
+        )
+          throw Error("Stale edit restored deleted care link");
+      },
+      { courseId, deletionState },
+    );
+    console.log(
+      "PASS treatment deletion unlinks all visits, preserves medicines, rolls back on failure, and stale clinical edits retain current links",
     );
 
     // A failed version-change transaction must leave both records and schema at v1.

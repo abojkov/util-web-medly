@@ -28,60 +28,115 @@ export async function saveRecord(store, values, original, related = {}) {
   let validationError;
   try {
     await transaction(STORES, "readwrite", (tx) => {
-      const newMedicines = writes.filter(
-        (write) =>
-          write.store === "medications" &&
-          (!original ||
-            original.id !== write.record.id ||
-            medicationKey(original) !== medicationKey(write.record)),
-      );
-      if (newMedicines.length)
-        tx.objectStore("medications").getAll().onsuccess = (event) => {
-          const seen = new Map(
-            event.target.result.map((item) => [medicationKey(item), item.id]),
+      const stage = () => {
+        try {
+          const newMedicines = writes.filter(
+            (write) =>
+              write.store === "medications" &&
+              (!original ||
+                original.id !== write.record.id ||
+                medicationKey(original) !== medicationKey(write.record)),
           );
-          for (const { record: medicine } of newMedicines) {
-            const key = medicationKey(medicine);
-            if (seen.has(key) && seen.get(key) !== medicine.id) {
-              validationError = new Error(
-                "This medicine, strength, and form already exist. Select the existing medication from your library.",
+          if (newMedicines.length)
+            tx.objectStore("medications").getAll().onsuccess = (event) => {
+              const seen = new Map(
+                event.target.result.map((item) => [
+                  medicationKey(item),
+                  item.id,
+                ]),
               );
-              tx.abort();
-              return;
-            }
-            seen.set(key, medicine.id);
-          }
-        };
-      // Stage related records before checking references. A failure rolls back the entire visit.
-      for (const write of writes) tx.objectStore(write.store).put(write.record);
-      if (store === "visits")
-        tx.objectStore("visits").getAll().onsuccess = (event) => {
-          try {
-            validateVisitHierarchy(event.target.result);
-          } catch (error) {
-            validationError = error;
-            tx.abort();
-          }
-        };
-      for (const write of writes)
-        for (const field of definitions[write.store].fields.filter(
-          (field) => field.type === "reference",
-        )) {
-          const ids = field.multiple
-            ? write.record[field.key] || []
-            : write.record[field.key]
-              ? [write.record[field.key]]
-              : [];
-          for (const id of ids)
-            tx.objectStore(field.store).get(id).onsuccess = (event) => {
-              if (!event.target.result) {
-                validationError = new Error(
-                  "A linked record no longer exists. Refresh the archive and choose another record.",
-                );
+              for (const { record: medicine } of newMedicines) {
+                const key = medicationKey(medicine);
+                if (seen.has(key) && seen.get(key) !== medicine.id) {
+                  validationError = new Error(
+                    "This medicine, strength, and form already exist. Select the existing medication from your library.",
+                  );
+                  tx.abort();
+                  return;
+                }
+                seen.set(key, medicine.id);
+              }
+            };
+          // Stage related records before checking references. A failure rolls back the entire visit.
+          for (const write of writes)
+            tx.objectStore(write.store).put(write.record);
+          if (store === "visits")
+            tx.objectStore("visits").getAll().onsuccess = (event) => {
+              try {
+                validateVisitHierarchy(event.target.result);
+              } catch (error) {
+                validationError = error;
                 tx.abort();
               }
             };
+          for (const write of writes)
+            for (const field of definitions[write.store].fields.filter(
+              (field) => field.type === "reference",
+            )) {
+              const ids = field.multiple
+                ? write.record[field.key] || []
+                : write.record[field.key]
+                  ? [write.record[field.key]]
+                  : [];
+              for (const id of ids)
+                tx.objectStore(field.store).get(id).onsuccess = (event) => {
+                  if (!event.target.result) {
+                    validationError = new Error(
+                      "A linked record no longer exists. Refresh the archive and choose another record.",
+                    );
+                    tx.abort();
+                  }
+                };
+            }
+          if (store === "treatments" && related.visitId) {
+            tx.objectStore("visits").get(related.visitId).onsuccess = (
+              event,
+            ) => {
+              try {
+                const visit = event.target.result;
+                if (!visit)
+                  throw new Error(
+                    "This visit no longer exists. Refresh the archive before adding a treatment.",
+                  );
+                const updated = stamp(
+                  {
+                    treatmentIds: [
+                      ...new Set([...(visit.treatmentIds || []), record.id]),
+                    ],
+                  },
+                  visit,
+                );
+                validateRecord("visits", updated);
+                tx.objectStore("visits").put(updated);
+              } catch (error) {
+                validationError = error;
+                tx.abort();
+              }
+            };
+          }
+        } catch (error) {
+          validationError = error;
+          tx.abort();
         }
+      };
+      // Clinical edits must retain current care links, including changes from another tab.
+      if (
+        store === "visits" &&
+        original &&
+        !Object.hasOwn(values, "treatmentIds")
+      ) {
+        tx.objectStore("visits").get(record.id).onsuccess = (event) => {
+          if (!event.target.result) {
+            validationError = new Error(
+              "This visit no longer exists. Refresh the archive before saving.",
+            );
+            tx.abort();
+            return;
+          }
+          record.treatmentIds = event.target.result.treatmentIds || [];
+          stage();
+        };
+      } else stage();
     });
   } catch (error) {
     throw validationError || error;
@@ -148,10 +203,19 @@ export async function combineMedications(sourceId, targetId) {
 }
 export async function deleteRecord(store, id) {
   let blocked = false;
+  let validationError;
   try {
     await transaction(STORES, "readwrite", (tx) => {
       for (const [source, definition] of Object.entries(definitions)) {
-        const refs = definition.fields.filter((field) => field.store === store);
+        const refs = definition.fields.filter(
+          (field) =>
+            field.store === store &&
+            !(
+              store === "treatments" &&
+              source === "visits" &&
+              field.key === "treatmentIds"
+            ),
+        );
         if (!refs.length) continue;
         tx.objectStore(source).getAll().onsuccess = (event) => {
           if (
@@ -168,6 +232,27 @@ export async function deleteRecord(store, id) {
           }
         };
       }
+      if (store === "treatments")
+        tx.objectStore("visits").getAll().onsuccess = (event) => {
+          try {
+            for (const visit of event.target.result) {
+              if (!visit.treatmentIds?.includes(id)) continue;
+              const updated = stamp(
+                {
+                  treatmentIds: visit.treatmentIds.filter(
+                    (courseId) => courseId !== id,
+                  ),
+                },
+                visit,
+              );
+              validateRecord("visits", updated);
+              tx.objectStore("visits").put(updated);
+            }
+          } catch (error) {
+            validationError = error;
+            tx.abort();
+          }
+        };
       tx.objectStore(store).delete(id);
     });
   } catch (error) {
@@ -175,6 +260,6 @@ export async function deleteRecord(store, id) {
       throw new Error(
         "This record is linked to other records. Remove those links before deleting it. Your history has been preserved.",
       );
-    throw error;
+    throw validationError || error;
   }
 }

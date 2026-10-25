@@ -174,7 +174,7 @@ export function detailPage(store, id, data) {
     const visits = data.visits.filter((visit) =>
       visit.treatmentIds?.includes(id),
     );
-    extra = `<section class="panel mt-4"><div class="panel-heading"><h2>Related medical visits</h2></div>${visits.length ? visits.map((visit) => recordRow("visits", visit, data)).join("") : emptyState("visit", "No visit linked", "You can link this course from a medical visit’s form.")}</section>`;
+    extra = `<section class="panel mt-4"><div class="panel-heading"><h2>Related medical visits</h2></div>${visits.length ? visits.map((visit) => recordRow("visits", visit, data)).join("") : emptyState("visit", "No visit linked", "To record care for a visit, use Add treatment on that visit’s page.")}</section>`;
   }
   if (store === "doctors")
     extra = `<section class="panel mt-4"><div class="panel-heading"><h2>Medical visits</h2></div>${
