@@ -953,11 +953,12 @@ textarea.form-control {
   grid-column: 1/-1;
 }
 .detail-field dt {
-  font-size: 10px;
-  letter-spacing: 0.5px;
-  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: #61776e;
   font-weight: 600;
-  margin-bottom: 7px;
+  margin-bottom: 9px;
 }
 .detail-field dd {
   font-size: 14px;
@@ -1896,9 +1897,11 @@ input[type="datetime-local"] {
   min-width: 0;
 }
 .followup-facts dt {
-  font-size: 10px;
-  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  color: #61776e;
   font-weight: 600;
+  margin-bottom: 5px;
 }
 .followup-facts dd {
   margin: 2px 0 0;
