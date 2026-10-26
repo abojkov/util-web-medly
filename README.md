@@ -67,7 +67,7 @@ sw.js                         Versioned static application-shell cache
 tests/                        Browser integration and data-safety verification
 ```
 
-The runtime is HTML, Bootstrap CSS, custom CSS and vanilla ES modules. Native `<dialog>` handles focus trapping and keyboard behavior without a Bootstrap JavaScript dependency. Forms use Bootstrap controls and layouts. A shared entity definition keeps labels, fields, reference selectors and import validation consistent without creating a framework. Larger reference directories include a filter input.
+The runtime is HTML, Bootstrap CSS, custom CSS and vanilla ES modules. Native `<dialog>` handles focus trapping and keyboard behavior without a Bootstrap JavaScript dependency. Forms use Bootstrap controls and layouts. A shared entity definition keeps labels, fields, reference selectors and import validation consistent without creating a framework. Larger reference directories include a filter input. Search inputs use a light gray background and a search icon on the right. Dropdowns show a locally bundled chevron so their indicators work under the content security policy and offline.
 
 Data access is separate from rendering. UI renders escaped user text; document previews use DOM-created elements and revocable blob URLs. Errors reach a central notification area or remain inline in forms. Writes are considered successful only after transaction commit. There is no silent fallback database.
 

@@ -836,13 +836,15 @@ main:focus {
 }
 .search-input > .icon {
   position: absolute;
-  top: 12px;
-  left: 13px;
+  top: 50%;
+  right: 13px;
+  transform: translateY(-50%);
   color: #8b978d;
   width: 19px;
+  pointer-events: none;
 }
 .search-input .form-control {
-  padding-left: 41px;
+  padding-right: 41px;
 }
 .filter-bar > .form-select {
   width: 155px;
@@ -854,6 +856,12 @@ main:focus {
   border-radius: 8px;
   border-color: #dce2dc;
   color: var(--ink);
+}
+.form-select {
+  --bs-form-select-bg-img: url("../icons/chevron-down.svg");
+}
+.form-control[type="search"] {
+  background-color: #f3f4f2;
 }
 .form-control:focus,
 .form-select:focus {
@@ -1090,9 +1098,6 @@ main:focus {
 .large-search .form-control {
   min-height: 52px;
 }
-.large-search > .icon {
-  top: 16px;
-}
 .medly-dialog {
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -1188,6 +1193,11 @@ main:focus {
 }
 .selector-search {
   margin-bottom: 7px;
+  padding-right: 41px;
+  background-image: url("../icons/search.svg");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 19px 19px;
 }
 .fatal {
   padding: 20px;
