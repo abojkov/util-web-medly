@@ -516,7 +516,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     const backupDownload = page.waitForEvent("download");
     await page.locator("#export-backup").click();
     const backupFile = await backupDownload;
-    assert(backupFile.suggestedFilename().startsWith("medly-backup-"));
+    assert.match(backupFile.suggestedFilename(), /^medly-backup-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/);
     const backupPath = path.join(artifacts, "synthetic-backup.json");
     await backupFile.saveAs(backupPath);
     await page.locator("#import-file").setInputFiles(backupPath);

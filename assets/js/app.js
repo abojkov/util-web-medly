@@ -350,7 +350,7 @@ function bindSettings() {
       const backup = await createBackup();
       download(
         new Blob([JSON.stringify(backup)], { type: "application/json" }),
-        `medly-backup-${new Date().toISOString().slice(0, 10)}.json`,
+        `medly-backup-${backup.exportedAt.replace(/[:.]/g, "-")}.json`,
       );
       notify("Backup prepared. Keep the downloaded file somewhere private.");
     } catch (error) {

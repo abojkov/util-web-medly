@@ -121,6 +121,8 @@ Exports use schema 9; imports accept schemas 1 through 9. Version-1 backups are 
 
 ## Backup format and recovery
 
+Export filenames include the UTC export date and time down to milliseconds, such as `medly-backup-2026-10-26T15-30-45-123Z.json`. The filename timestamp matches the backup’s `exportedAt` value.
+
 Export produces a JSON object with `format: "medly-backup"`, `schemaVersion`, `appVersion`, `exportedAt` and a `data` object containing every store. Documents replace their `blob` with `base64` only inside the backup. These backups contain readable sensitive medical information; protect the files accordingly.
 
 Before import, Medly validates the JSON envelope, supported schema version, required stores, supported fields, UUIDs, timestamps, field types, date ranges, statuses, duplicate IDs, file size/type/signature and relationships. Invalid backups do not modify the archive. A review dialog shows record and document counts before applying either mode:
