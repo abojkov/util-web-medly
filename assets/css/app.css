@@ -863,6 +863,10 @@ main:focus {
 .form-control[type="search"] {
   background-color: #f3f4f2;
 }
+textarea.form-control {
+  overflow-y: hidden;
+  resize: none;
+}
 .form-control:focus,
 .form-select:focus {
   border-color: var(--pink);

@@ -2,7 +2,12 @@ import { definitions, FILE_TYPES } from "../db/schema.js";
 import { saveRecord } from "../db/repository.js";
 import { validateFile } from "../utils/validation.js";
 import { escapeHTML as e, localDateTime, today } from "../utils/format.js";
-import { formFields, readFields, bindFieldSearch } from "./form-fields.js";
+import {
+  formFields,
+  readFields,
+  bindFieldSearch,
+  bindAutoGrowingTextareas,
+} from "./form-fields.js";
 import { treatmentEditor } from "./treatment-editor.js";
 import {
   showDialog,
@@ -109,6 +114,7 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
         name.value = fileInput.files[0].name;
     };
   }
+  bindAutoGrowingTextareas(form);
   form.onsubmit = async (event) => {
     event.preventDefault();
     if (!form.reportValidity()) return;

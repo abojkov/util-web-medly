@@ -102,3 +102,54 @@ export function bindFieldSearch(root) {
       }),
   );
 }
+
+export function bindAutoGrowingTextareas(form) {
+  const dialog = form.closest("dialog");
+  let frame;
+  let width;
+  const resize = () => {
+    const scrollTop = dialog.scrollTop;
+    for (const textarea of form.querySelectorAll("textarea")) {
+      if (!textarea.getClientRects().length) continue;
+      // Auto restores the intrinsic three-row height before measuring content.
+      textarea.style.height = "auto";
+      const border = textarea.offsetHeight - textarea.clientHeight;
+      textarea.style.height = `${textarea.scrollHeight + border}px`;
+    }
+    dialog.scrollTop = scrollTop;
+  };
+  const schedule = () => {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = undefined;
+      resize();
+    });
+  };
+  const onInput = (event) => {
+    if (event.target.matches("textarea")) schedule();
+  };
+  const sizes = new ResizeObserver(([entry]) => {
+    if (entry.contentRect.width === width) return;
+    width = entry.contentRect.width;
+    schedule();
+  });
+  const changes = new MutationObserver(schedule);
+  sizes.observe(form);
+  changes.observe(form, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["hidden"],
+  });
+  form.addEventListener("input", onInput);
+  const cleanup = () => {
+    if (dialog.open && form.isConnected) return;
+    sizes.disconnect();
+    changes.disconnect();
+    cancelAnimationFrame(frame);
+    form.removeEventListener("input", onInput);
+    dialog.removeEventListener("close", cleanup);
+  };
+  dialog.addEventListener("close", cleanup);
+  resize();
+}
