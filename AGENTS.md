@@ -2,6 +2,7 @@
 
 Read README.md as the maintained product specification and PROJECT.md for the original brief.
 
+- Never use em dashes or en dashes. Use only short hyphens (`-`) everywhere in project text and UI.
 - Do not place a comma before “and” or “or” in prose or UI text. Apply this rule to all new and edited project text.
 - Use vanilla ES modules, Bootstrap 5, IndexedDB and static assets. No runtime Node.js, framework, backend or build step.
 - Preserve local-first privacy. No analytics, remote records, real patient fixtures or sensitive logs.
