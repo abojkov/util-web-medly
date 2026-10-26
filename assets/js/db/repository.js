@@ -155,6 +155,48 @@ export async function saveRecord(store, values, original, related = {}) {
   }
   return record;
 }
+
+export async function completeAppointment(id, visitId = "") {
+  let saved;
+  let validationError;
+  try {
+    await transaction(["appointments", "visits"], "readwrite", (tx) => {
+      const appointments = tx.objectStore("appointments");
+      const fail = (error) => {
+        validationError = error;
+        tx.abort();
+      };
+      appointments.get(id).onsuccess = (event) => {
+        try {
+          const current = event.target.result;
+          if (!current)
+            throw new Error("This appointment no longer exists. Refresh the archive.");
+          if (current.status !== "Scheduled")
+            throw new Error("This appointment is no longer scheduled. Refresh the archive.");
+          saved = stamp({ status: "Completed", visitId }, current);
+          validateRecord("appointments", saved);
+          if (!visitId) appointments.put(saved);
+          else
+            tx.objectStore("visits").get(visitId).onsuccess = (visit) => {
+              try {
+                if (!visit.target.result)
+                  throw new Error("This medical visit no longer exists. Choose another visit or leave it unlinked.");
+                appointments.put(saved);
+              } catch (error) {
+                fail(error);
+              }
+            };
+        } catch (error) {
+          fail(error);
+        }
+      };
+    });
+  } catch (error) {
+    throw validationError || error;
+  }
+  return saved;
+}
+
 export async function combineMedications(sourceId, targetId) {
   if (sourceId === targetId)
     throw new Error("Choose a different medication to keep.");

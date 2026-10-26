@@ -216,7 +216,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     );
     await page.locator("[data-complete]").click();
     await page.locator("#field-visitId").selectOption(visitId);
-    await page.locator('#record-form button[type="submit"]').click();
+    await page.locator('#appointment-completion-form button[type="submit"]').click();
     await page.waitForFunction(() => !document.querySelector("#modal").open);
     await page
       .locator("main")

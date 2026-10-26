@@ -6,6 +6,7 @@ import { createBackup, parseBackup, importBackup } from "./services/backup.js";
 import { route, initRouter } from "./router.js";
 import { icon } from "./components/icons.js";
 import { recordForm } from "./components/record-form.js";
+import { appointmentCompletion } from "./components/appointment-completion.js";
 import {
   showDialog,
   closeDialog,
@@ -333,12 +334,7 @@ main.addEventListener("click", async (event) => {
       const original = data.appointments.find(
         (a) => a.id === button.dataset.complete,
       );
-      recordForm(
-        "appointments",
-        data,
-        { ...original, status: "Completed" },
-        changed,
-      );
+      appointmentCompletion(original, data, changed);
     }
   } catch (error) {
     reportError(error);
@@ -486,7 +482,7 @@ addEventListener("unhandledrejection", (event) => {
 addEventListener("beforeunload", (event) => {
   if (
     document.querySelector("#modal").open &&
-    document.querySelector("#record-form")?.dataset.dirty === "true"
+    document.querySelector("#modal form")?.dataset.dirty === "true"
   ) {
     event.preventDefault();
     event.returnValue = "";
