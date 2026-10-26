@@ -17,7 +17,7 @@ export function recordsPage(store, data) {
   const tabs = ["doctors", "clinics"].includes(store)
     ? `<div class="section-tabs"><a class="${store === "doctors" ? "active" : ""}" href="#/doctors">Doctors</a><a class="${store === "clinics" ? "active" : ""}" href="#/clinics">Clinics & hospitals</a></div>`
     : "";
-  return `${pageHeader("YOUR HEALTH ARCHIVE", definition.label, definition.description, addButton(store))}${tabs}<section class="panel"><div class="filter-bar"><div class="search-input">${icon("search")}<input type="search" class="form-control" id="list-search" aria-label="Search ${e(definition.label.toLowerCase())}" placeholder="Search ${e(definition.label.toLowerCase())}…"></div><select id="sort" class="form-select" aria-label="Sort records"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Name A-Z</option></select></div>${
+  return `${pageHeader("YOUR HEALTH ARCHIVE", definition.label, definition.description, addButton(store))}${tabs}<section class="panel">${store === "visits" ? `<details class="visit-search"><summary><span class="visit-search-label">${icon("search")}<span>Search & filters</span></span><span class="visit-search-count" id="visit-search-count" hidden></span></summary>` : ""}<div class="filter-bar"><div class="search-input">${icon("search")}<input type="search" class="form-control" id="list-search" aria-label="Search ${e(definition.label.toLowerCase())}" placeholder="Search ${e(definition.label.toLowerCase())}…"></div><select id="sort" class="form-select" aria-label="Sort records"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Name A-Z</option></select></div>${
     store === "visits"
       ? `<div class="visit-filters"><select class="form-select" id="filter-doctor" aria-label="Filter by doctor"><option value="">All doctors</option>${data.doctors.map((d) => `<option value="${d.id}">${e(d.name)}</option>`).join("")}</select><select class="form-select" id="filter-specialty" aria-label="Filter by specialty"><option value="">All specialties</option>${[
           ...new Set(data.doctors.map((d) => d.specialty).filter(Boolean)),
@@ -33,7 +33,7 @@ export function recordsPage(store, data) {
             "",
           )}</select><label>From<input type="date" class="form-control" id="filter-from"></label><label>To<input type="date" class="form-control" id="filter-to"></label></div>`
       : ""
-  }<div id="list-results"></div></section>`;
+  }${store === "visits" ? "</details>" : ""}<div id="list-results"></div></section>`;
 }
 export function renderList(store, data) {
   const root = document.querySelector("#list-results");
@@ -68,16 +68,23 @@ export function renderList(store, data) {
         }),
       ).values(),
     ];
-  const filtered =
-    store === "visits" &&
-    [
-      "list-search",
-      "filter-doctor",
-      "filter-specialty",
-      "filter-type",
-      "filter-from",
-      "filter-to",
-    ].some((id) => document.getElementById(id).value);
+  const activeFilters = store === "visits"
+    ? [
+        "list-search",
+        "filter-doctor",
+        "filter-specialty",
+        "filter-type",
+        "filter-from",
+        "filter-to",
+      ].filter((id) => document.getElementById(id).value.trim())
+    : [];
+  const filtered = activeFilters.length > 0;
+  if (store === "visits") {
+    const count = activeFilters.length + (sort !== "newest" ? 1 : 0);
+    const badge = document.getElementById("visit-search-count");
+    badge.textContent = `${count} active`;
+    badge.hidden = count === 0;
+  }
   records.sort((a, b) =>
     sort === "name"
       ? titleFor(store, a).localeCompare(titleFor(store, b))

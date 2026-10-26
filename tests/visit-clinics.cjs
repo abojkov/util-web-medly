@@ -144,6 +144,7 @@ const backup = {
     await page.goto(`${baseURL}/#/clinics/${clinic.id}`);
     await page.locator(`a[href="#/visits/${visitId}"]`).waitFor();
     await page.goto(`${baseURL}/#/visits`);
+    await page.locator(".visit-search > summary").click();
     await page.locator("#list-search").fill(clinic.name);
     await page.locator(`#list-results a[href="#/visits/${visitId}"]`).waitFor();
     await page.goto(`${baseURL}/#/visits/${visitId}`);

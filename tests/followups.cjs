@@ -246,6 +246,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await page.getByText("2 episodes", { exact: true }).waitFor();
 
     // Every filter searches all visits but returns the owning episode.
+    await page.locator(".visit-search > summary").click();
     await page.locator("#list-search").fill("Synthetic review two");
     await page.getByText("1 episode", { exact: true }).waitFor();
     await page

@@ -145,6 +145,7 @@ for (const records of Object.values(expected)) records.sort((a,b) => a.id.locale
         await page.getByText("Updated visit reason and symptoms",{exact:true}).waitFor();
         assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
         await page.goto(`${baseURL}/#/visits`);
+        await page.locator(".visit-search > summary").click();
         await page.locator("#list-search").fill("Updated visit reason");
         await page.locator(`#list-results a[href="#/visits/${root.id}"]`).waitFor();
         console.log("PASS new form/detail/follow-up labels, escaped title, editing, persistence, renamed-field search and 320px layout");

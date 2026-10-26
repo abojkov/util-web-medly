@@ -1,4 +1,4 @@
-const CACHE = "medly-shell-v39";
+const CACHE = "medly-shell-v40";
 const ASSETS = [
   "./",
   "./index.html",
