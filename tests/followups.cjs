@@ -480,7 +480,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         const restored = await createBackup();
         if (
           JSON.stringify(backup.data) !== JSON.stringify(restored.data) ||
-          backup.schemaVersion !== 8
+          backup.schemaVersion !== 9
         )
           throw Error("Episode backup round trip failed");
         const legacy = structuredClone(backup);
@@ -597,7 +597,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await context.setOffline(false);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS merge-cycle rollback, schema-8 backup round trip, reload persistence, nested mobile layouts and offline episode history",
+      "PASS merge-cycle rollback, schema-9 backup round trip, reload persistence, nested mobile layouts and offline episode history",
     );
 
     // Upgrade an actual v2 archive: preserve every record and add the index without guessing links.
@@ -645,13 +645,13 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         const { openDatabase } = await import("./assets/js/db/database.js");
         const db = await openDatabase();
         if (
-          db.version !== 8 ||
+          db.version !== 9 ||
           !db
             .transaction("visits")
             .objectStore("visits")
             .indexNames.contains("parentVisitId")
         )
-          throw Error("v2 archive did not upgrade to indexed v8 schema");
+          throw Error("v2 archive did not upgrade to indexed v9 schema");
         const current = await (
           await import("./assets/js/services/backup.js")
         ).createBackup();
@@ -683,10 +683,10 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
                 ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : value,
             )
         )
-          throw Error("v2→v8 upgrade rewrote or lost existing archive data");
+          throw Error("v2→v9 upgrade rewrote or lost existing archive data");
       }, legacy);
       console.log(
-        "PASS populated v2→v8 upgrade preserves records, attachments and unlinked historical follow-ups",
+        "PASS populated v2→v9 upgrade preserves records, attachments and unlinked historical follow-ups",
       );
     } finally {
       await oldContext.close();

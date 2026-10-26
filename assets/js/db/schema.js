@@ -1,5 +1,5 @@
-export const APP_VERSION = "1.7.0";
-export const SCHEMA_VERSION = 8;
+export const APP_VERSION = "1.8.0";
+export const SCHEMA_VERSION = 9;
 export const DB_NAME = "medly";
 export const MAX_FILE_SIZE = 7 * 1024 * 1024;
 export const FILE_TYPES = [
@@ -37,6 +37,7 @@ const ref = (key, label, store, multiple = false) => ({
 });
 export const definitions = {
   visits: {
+    exclusiveProvider: true,
     label: "Medical visits",
     singular: "Medical visit",
     icon: "visit",
@@ -175,6 +176,7 @@ export const definitions = {
     ],
   },
   appointments: {
+    exclusiveProvider: true,
     label: "Appointments",
     singular: "Appointment",
     icon: "calendar",
@@ -189,8 +191,8 @@ export const definitions = {
         type: "datetime-local",
         required: true,
       },
-      ref("clinicId", "Clinic", "clinics"),
       ref("doctorId", "Doctor", "doctors"),
+      ref("clinicId", "Clinic", "clinics"),
       select("status", "Status", [
         "Scheduled",
         "Completed",
@@ -198,7 +200,8 @@ export const definitions = {
         "Missed",
       ]),
       ref("visitId", "Completed medical visit", "visits"),
-      area("notes", "Notes"),
+      // Preserve original clinic details when upgrading older appointments.
+      { ...area("notes", "Notes"), maxLength: 40100 },
     ],
   },
 };

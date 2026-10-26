@@ -33,7 +33,7 @@ The first version delivers the complete personal archive workflow:
 - **Medication library:** one reusable product entry with name, optional strength, form and notes. Dosage, frequency, dates, prescriber, instructions and status belong to treatment courses. The library shows course counts and the most recent course date; each medicine opens its course history with links back to visits. New entries with the same trimmed, case-insensitive name, strength and form are rejected in favor of selecting the existing medicine. Distinct strengths/forms remain separate products. Legacy/imported duplicates are preserved until explicitly combined after review; combining moves courses without merging their histories and retains source product details in the kept entry’s notes.
 - **Doctors and clinics:** reusable directories with contact details and notes. Doctors reference clinics; their detail pages show associated visits. Clinic pages show linked doctors.
 - **Documents:** original PDF, JPEG, PNG and WebP files, maximum **7 MiB (7 × 1024 × 1024 bytes)** each. Files are checked for MIME type, size and basic signatures and stored as IndexedDB blobs. Each can be linked to one visit, with multiple documents per visit. An editable **Document issue date** defaults to the linked visit’s date on creation. Set it to the date printed on the document or leave it unknown. Lists and the timeline use the issue date rather than the upload date. Documents with unknown dates are labeled as added with an unknown issue date in the timeline. Add files individually, preview supported formats, edit metadata, download originals and delete. PDF previews use the browser’s native viewer in an iframe without the iframe sandbox attribute because that attribute can block Chrome’s PDF viewer. An **Open PDF in new tab** link and original download are available when embedded viewing is unsupported. Compression happens outside Medly.
-- **Appointments:** reason, date/time, doctor, clinic, status (Scheduled, Completed, Cancelled, Missed), notes, optional completed visit. Use Complete appointment to set the status and optionally select an existing medical visit. To record a new visit, create it in Medical visits first and then link it. Scheduled appointments in the past show as overdue on the overview; they are never silently marked missed. Planned tests can be recorded as appointments with their test name as the reason.
+- **Appointments:** reason, date/time, doctor, clinic, status (Scheduled, Completed, Cancelled, Missed), notes, optional completed visit. Choose a doctor or a direct clinic. Selecting a doctor hides the clinic choice and inherits that doctor’s clinic, including in details, lists and search. Without a doctor, a clinic can be assigned directly. Forms show the inherited clinic or state that the doctor has no clinic. Use Complete appointment to set the status and optionally select an existing medical visit. To record a new visit, create it in Medical visits first and then link it. Scheduled appointments in the past show as overdue on the overview; they are never silently marked missed. Planned tests can be recorded as appointments with their test name as the reason.
 - **Timeline:** derived from visits, diagnoses, treatment starts/completions and document issue dates. Tests and procedures are included in visit details. Timeline entries reference their source records; there is no redundant event store.
 - **Settings:** full JSON backup/export, validated merge or replace restore, storage usage estimates, persistent-storage request, update checks and confirmed clearing of the archive.
 - **Mobile and accessibility:** responsive sidebar/bottom navigation, More menu, safe areas, native date controls, labeled inputs, visible keyboard focus, native accessible dialogs, reduced-motion support and a skip link. Dialogs stay open on backdrop clicks. Escape and close/cancel controls ask before discarding edited forms.
@@ -73,7 +73,7 @@ Data access is separate from rendering. UI renders escaped user text; document p
 
 Search and list rendering use one snapshot per route/change, not per keystroke. This keeps personal archives simple and responsive; very large archives may eventually require pagination, incremental search indexing and lazy attachment reads. The current snapshot includes document blobs, which are not converted to base64 for everyday use.
 
-## Database schema (version 8)
+## Database schema (version 9)
 
 Database name: `medly`. All stores use `id` (UUID) as their key, plus ISO `createdAt` and `updatedAt` timestamps. Record references are UUIDs, never embedded copies. Optional single references are empty strings; multi-references are arrays of UUIDs.
 
@@ -115,7 +115,9 @@ Version 7 adds an optional direct clinic reference and index to visits without r
 
 Version 8 renames visit `reason` to `title` (Visit title) and `symptoms` to `reasonAndSymptoms` (Visit reason & symptoms). Database upgrades and schemas 1 through 7 backup imports preserve the original text, IDs, dates, links and audit timestamps. The rename runs in the upgrade transaction and rolls back entirely on failure. Appointment `reason` is unchanged.
 
-Exports use schema 8; imports accept schemas 1 through 8. Version-1 backups are validated against their original schema and relationships before being converted using the same migration. Newer unsupported schemas are rejected. Future schema changes must increment `SCHEMA_VERSION`, preserve records, update backup support and test earlier supported backups. A database upgrade blocked by another tab is reported; version changes close the old connection and reload that tab.
+Version 9 makes appointment provider selection exclusive: a doctor supplies its clinic; a direct clinic is stored only without a doctor. Earlier appointments containing both keep the doctor and move the original direct clinic’s name and ID into notes, retaining existing notes, IDs, dates, visit links, statuses and audit timestamps. Appointment notes allow 40,100 characters to preserve the old notes and clinic name without truncation. Database upgrades and older backup conversion use the same rule; upgrades and restores remain atomic.
+
+Exports use schema 9; imports accept schemas 1 through 9. Version-1 backups are validated against their original schema and relationships before being converted using the same migration. Newer unsupported schemas are rejected. Future schema changes must increment `SCHEMA_VERSION`, preserve records, update backup support and test earlier supported backups. A database upgrade blocked by another tab is reported; version changes close the old connection and reload that tab.
 
 ## Backup format and recovery
 
@@ -159,6 +161,7 @@ MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/d
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/document-preview.cjs
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/visit-clinics.cjs
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/visit-fields.cjs
+MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/appointment-providers.cjs
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/followups.cjs
 MEDLY_PLAYWRIGHT_PATH=/tmp/medly-test-tools/node_modules/playwright node tests/followup-migration.cjs
 ```
@@ -169,7 +172,9 @@ The care suite also checks a populated v1 database upgrade to the current schema
 
 The clinic-visit suite checks upgrading from v6 with preserved records and renamed visit fields, older/current backups, clinic-only visits at 320px, doctor switching, clinic search/history, follow-up defaults and invalid/deleted clinic protection.
 
-The visit-field suite checks the v7 to v8 rename, preservation of text and missing values, IDs, timestamps, links, appointment reasons and attachment bytes, atomic upgrade rollback, v7/v8 backup round trips, invalid-field rejection, renamed labels, editing, search and 320px layout.
+The appointment-provider suite checks the v8 upgrade, earlier-backup conversion, preservation of prior clinic details and maximum-length notes, timestamps, links and attachments, atomic upgrade rollback, provider conflict rejection, mobile doctor/clinic switching, inherited-clinic display, persistence and search.
+
+The visit-field suite checks the v7 to current-schema rename, preservation of text and missing values, IDs, timestamps, links, appointment reasons and attachment bytes, atomic upgrade rollback, v7/current-schema backup round trips, invalid-field rejection, renamed labels, editing, search and 320px layout.
 
 The document-preview suite uses a valid synthetic PDF to check Chrome’s native embedded viewer and the separate-tab fallback without opener access.
 

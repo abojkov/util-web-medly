@@ -84,10 +84,12 @@ export function searchRecords(data, query, onlyStore) {
         }
         return value || "";
       });
-      if (store === "visits") {
+      if (["visits", "appointments"].includes(store)) {
         const doctor = data.doctors.find((d) => d.id === record.doctorId);
         const clinic = data.clinics.find((c) => c.id === doctor?.clinicId);
         if (clinic) values.push(clinic.name);
+      }
+      if (store === "visits") {
         for (const course of data.treatments.filter((course) =>
           record.treatmentIds?.includes(course.id),
         )) {

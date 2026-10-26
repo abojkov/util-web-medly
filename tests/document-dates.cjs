@@ -160,8 +160,8 @@ const backup = {
           );
           const current = await createBackup();
           if (
-            current.schemaVersion !== 8 ||
-            (await openDatabase()).version !== 8
+            current.schemaVersion !== 9 ||
+            (await openDatabase()).version !== 9
           )
             throw Error("Wrong schema");
           for (const original of backup.data.documents) {

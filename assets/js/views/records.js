@@ -136,7 +136,7 @@ export function detailPage(store, id, data) {
                 `<a class="linked-chip" href="#/${field.store}/${r.id}">${e(field.store === "treatments" ? courseLabel(r, data) : field.store === "medications" ? medicineLabel(r) : field.store === "visits" ? visitLabel(r, data) : titleFor(field.store, r))} ${icon("arrow")}</a>`,
             )
             .join("") || "Not linked";
-        if (store === "visits" && field.key === "doctorId") {
+        if (["visits", "appointments"].includes(store) && field.key === "doctorId") {
           const clinic = data.clinics.find((c) => c.id === linked[0]?.clinicId);
           if (clinic)
             content += `<a class="linked-chip" href="#/clinics/${clinic.id}">${e(clinic.name)}</a>`;

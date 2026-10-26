@@ -5,6 +5,7 @@ import {
   migrateVisitNotes,
   migrateDocumentDates,
   migrateVisitFields,
+  migrateAppointmentProviders,
 } from "./migrations.js";
 
 let database;
@@ -33,8 +34,10 @@ export function openDatabase() {
       const onError = (error) => {
         migrationError = error;
       };
+      const migrateAppointments = () =>
+        migrateAppointmentProviders(request.transaction, onError);
       const migrateFields = () =>
-        migrateVisitFields(request.transaction, onError);
+        migrateVisitFields(request.transaction, onError, migrateAppointments);
       const migrateDocuments = () =>
         migrateDocumentDates(request.transaction, onError, migrateFields);
       const migrateNotes = () =>
@@ -49,6 +52,7 @@ export function openDatabase() {
       else if (event.oldVersion === 4) migrateNotes();
       else if (event.oldVersion === 5) migrateDocuments();
       else if (event.oldVersion >= 6 && event.oldVersion < 8) migrateFields();
+      else if (event.oldVersion === 8) migrateAppointments();
     };
     request.onerror = () => reject(migrationError || request.error);
     request.onblocked = () =>

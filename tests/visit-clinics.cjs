@@ -104,7 +104,7 @@ const backup = {
           .indexNames.contains("clinicId"),
       };
     });
-    assert.equal(upgraded.backup.schemaVersion, 8);
+    assert.equal(upgraded.backup.schemaVersion, 9);
     assert(upgraded.hasIndex);
     for (const name of Object.keys(data))
       assert.deepEqual(
@@ -228,7 +228,7 @@ const backup = {
     );
     assert.deepEqual(errors, []);
     console.log(
-      "PASS additive v6→v8 upgrade preserves records; legacy/current backups, clinic-only mobile visits, doctor switching, clinic search/history, follow-up defaults and transactional relationship protection",
+      "PASS additive v6→v9 upgrade preserves records; legacy/current backups, clinic-only mobile visits, doctor switching, clinic search/history, follow-up defaults and transactional relationship protection",
     );
   } finally {
     await context.close();

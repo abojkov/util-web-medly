@@ -75,10 +75,12 @@ export function recordMeta(store, record, data, { visitContext = false } = {}) {
       .filter(Boolean)
       .join(" · ");
   }
-  if (store === "appointments")
-    return (
-      data.clinics.find((c) => c.id === record.clinicId)?.name || "Appointment"
-    );
+  if (store === "appointments") {
+    const doctor = data.doctors.find((item) => item.id === record.doctorId);
+    const clinicId = doctor ? doctor.clinicId : record.clinicId;
+    return [doctor?.name, data.clinics.find((item) => item.id === clinicId)?.name]
+      .filter(Boolean).join(" · ") || "Appointment";
+  }
   return (
     record.instructions ||
     record.address ||

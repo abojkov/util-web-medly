@@ -65,9 +65,13 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
       "field-",
       markDirty,
     );
-  if (store === "visits") {
+  if (["visits", "appointments"].includes(store)) {
     const doctor = form.querySelector("#field-doctorId");
     const clinic = form.querySelector("#field-clinicId");
+    const inheritedClinic = document.createElement("small");
+    inheritedClinic.className = "form-text";
+    inheritedClinic.setAttribute("aria-live", "polite");
+    doctor.parentElement.append(inheritedClinic);
     const updateClinic = () => {
       clinic.closest(".col-md-6").hidden = Boolean(doctor.value);
       clinic.disabled = Boolean(doctor.value);
@@ -75,6 +79,12 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
         '[data-filter-select="field-clinicId"]',
       );
       if (search) search.disabled = Boolean(doctor.value);
+      const provider = data.doctors.find((item) => item.id === doctor.value);
+      const location = data.clinics.find((item) => item.id === provider?.clinicId);
+      inheritedClinic.hidden = !doctor.value;
+      inheritedClinic.textContent = location
+        ? `Clinic: ${location.name}`
+        : "No clinic assigned to this doctor.";
     };
     doctor.addEventListener("change", updateClinic);
     updateClinic();
@@ -133,10 +143,9 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
         values = draft.course;
         if (draft.medicine) related.medications.push(draft.medicine);
       } else values = readFields(store, form);
-      if (store === "visits") {
-        values.parentVisitId = parentVisitId;
-        if (values.doctorId) values.clinicId = "";
-      }
+      if (store === "visits") values.parentVisitId = parentVisitId;
+      if (["visits", "appointments"].includes(store) && values.doctorId)
+        values.clinicId = "";
       const file = fileInput?.files[0];
       setDialogBusy(true);
       if (file) {

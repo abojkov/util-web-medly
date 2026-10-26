@@ -19,9 +19,21 @@ const date = (key, required = false) => ({
   type: "date",
   required,
 });
+// Older appointments allowed separate doctor and clinic assignments.
+export const version8Definitions = {
+  ...definitions,
+  appointments: {
+    ...definitions.appointments,
+    exclusiveProvider: false,
+    fields: definitions.appointments.fields.map((field) =>
+      field.key === "notes" ? { ...field, maxLength: 20000 } : field,
+    ),
+  },
+};
+
 // Preserve the historical visit fields for validating backups before migration.
 export const version7Definitions = {
-  ...definitions,
+  ...version8Definitions,
   visits: {
     ...definitions.visits,
     title: "reason",
@@ -325,7 +337,7 @@ export function renameVisitFields(visit) {
   return record;
 }
 
-export function migrateVisitFields(transaction, onError) {
+export function migrateVisitFields(transaction, onError, onComplete = () => {}) {
   const store = transaction.objectStore("visits");
   store.getAll().onsuccess = (event) => {
     try {
@@ -335,9 +347,46 @@ export function migrateVisitFields(transaction, onError) {
         validateRecord("visits", migrated);
         store.put(migrated);
       }
+      onComplete();
     } catch (error) {
       onError(error);
       transaction.abort();
     }
   };
+}
+
+export function withAppointmentProvider(appointment, clinics) {
+  if (!appointment.doctorId || !appointment.clinicId) return appointment;
+  const clinic = clinics.find((item) => item.id === appointment.clinicId);
+  if (!clinic) throw new Error("An appointment refers to a missing clinic.");
+  return {
+    ...appointment,
+    clinicId: "",
+    notes: [
+      appointment.notes,
+      `Previously assigned clinic: ${clinic.name} (${clinic.id})`,
+    ].filter(Boolean).join("\n\n"),
+  };
+}
+
+export function migrateAppointmentProviders(transaction, onError) {
+  const data = {};
+  let remaining = 2;
+  for (const name of ["appointments", "clinics"])
+    transaction.objectStore(name).getAll().onsuccess = (event) => {
+      data[name] = event.target.result;
+      if (--remaining) return;
+      try {
+        for (const appointment of data.appointments) {
+          validateRecord("appointments", appointment, version8Definitions);
+          const migrated = withAppointmentProvider(appointment, data.clinics);
+          validateRecord("appointments", migrated);
+          if (migrated !== appointment)
+            transaction.objectStore("appointments").put(migrated);
+        }
+      } catch (error) {
+        onError(error);
+        transaction.abort();
+      }
+    };
 }

@@ -149,7 +149,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
           !("followUpInstructions" in data.visits[0]),
         "retired fields removed",
       );
-      ensure((await openDatabase()).version === 8, "schema upgraded to 8");
+      ensure((await openDatabase()).version === 9, "schema upgraded to 9");
       ensure(
         data.medications.length === 5 && data.treatments.length === 6,
         "all legacy prescriptions preserved without name-based merging",
@@ -460,7 +460,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         "./assets/js/services/backup.js"
       );
       const backup = await createBackup();
-      if (backup.schemaVersion !== 8) throw Error("Wrong export schema");
+      if (backup.schemaVersion !== 9) throw Error("Wrong export schema");
       await importBackup(await parseBackup(JSON.stringify(backup)), "replace");
       if (
         JSON.stringify(backup, (key, value) =>

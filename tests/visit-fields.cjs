@@ -90,12 +90,12 @@ for (const records of Object.values(expected)) records.sort((a,b) => a.id.locale
           }));
           assert.equal(stored.version,7);
           assert.deepEqual(stored.visits,[...data.visits].sort((a,b)=>a.id.localeCompare(b.id)));
-          console.log("PASS failed v7 to v8 rename rolls back schema and all visit writes");
+          console.log("PASS failed v7 to v9 rename rolls back schema and all visit writes");
           continue;
         }
         await page.getByRole("heading", {name:"Your health, together."}).waitFor();
         const exported = await page.evaluate(async () => (await import("./assets/js/services/backup.js")).createBackup());
-        assert.equal(exported.schemaVersion,8);
+        assert.equal(exported.schemaVersion,9);
         assert.deepEqual(exported.data,expected);
         await page.evaluate(async (backup) => {
           const {parseBackup,importBackup,createBackup} = await import("./assets/js/services/backup.js");
@@ -109,7 +109,7 @@ for (const records of Object.values(expected)) records.sort((a,b) => a.id.locale
           }
           await importBackup(await parseBackup(current), "replace");
           if (JSON.stringify((await createBackup()).data) !== before) throw Error("Current restore changed data");
-          for (const version of [7,8]) {
+          for (const version of [7,9]) {
             const invalid = structuredClone(version === 7 ? backup : current);
             const record = invalid.data.visits[0];
             record[version === 7 ? "symptoms" : "reasonAndSymptoms"] = 42;
@@ -128,7 +128,7 @@ for (const records of Object.values(expected)) records.sort((a,b) => a.id.locale
           if (!failed) throw Error("Obsolete fields accepted by normal writes");
           if (JSON.stringify((await createBackup()).data) !== before) throw Error("Rejected writes changed data");
         }, backup);
-        console.log("PASS field text, missing optional values, IDs, timestamps, links, appointment reasons and attachment bytes preserved; v7/v8 backup round trips and invalid fields rejected");
+        console.log("PASS field text, missing optional values, IDs, timestamps, links, appointment reasons and attachment bytes preserved; v7/v9 backup round trips and invalid fields rejected");
         await page.goto(`${baseURL}/#/visits/${root.id}`);
         await page.getByRole("heading", {name:root.reason, exact:true}).waitFor();
         await page.getByText("Visit title", {exact:true}).waitFor();

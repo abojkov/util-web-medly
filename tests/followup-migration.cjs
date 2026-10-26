@@ -207,7 +207,7 @@ const backup = {
               [...fixture.data.visits].sort((a, b) => a.id.localeCompare(b.id)),
             );
             console.log(
-              `PASS failed v${oldVersion}→v8 upgrade rolls back records and schema`,
+              `PASS failed v${oldVersion}→v9 upgrade rolls back records and schema`,
             );
           } else {
             await page
@@ -216,7 +216,7 @@ const backup = {
             const exported = await page.evaluate(async () =>
               (await import("./assets/js/services/backup.js")).createBackup(),
             );
-            assert.equal(exported.schemaVersion, 8);
+            assert.equal(exported.schemaVersion, 9);
             assert.deepEqual(exported.data, expected);
             await page.evaluate(async () => {
               const { openDatabase } = await import(
@@ -339,7 +339,7 @@ const backup = {
             );
             assert.deepEqual(restored.data, expected);
             console.log(
-              `PASS v${oldVersion}→v8 preserves legacy advice in notes, episode links, audit timestamps, courses and attachments; old backup restore and strict new writes`,
+              `PASS v${oldVersion}→v9 preserves legacy advice in notes, episode links, audit timestamps, courses and attachments; old backup restore and strict new writes`,
             );
           }
         } finally {
