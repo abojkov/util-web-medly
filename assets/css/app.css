@@ -773,6 +773,12 @@ main:focus {
   background: #eaf2e9;
   color: #476c49;
 }
+.treatment-period {
+  background: #f0f1ed;
+  color: var(--muted);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 .status-amber {
   background: #faf2df;
   color: #896b30;

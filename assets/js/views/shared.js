@@ -15,7 +15,7 @@ export const pageHeader = (eyebrow, title, description, action = "") =>
 export function emptyState(iconName, title, description, action = "") {
   return `<div class="empty-state"><span class="empty-icon">${icon(iconName)}</span><h3>${e(title)}</h3><p>${e(description)}</p>${action}</div>`;
 }
-export function recordMeta(store, record, data) {
+export function recordMeta(store, record, data, { visitContext = false } = {}) {
   if (store === "visits") {
     const root = visitHierarchy(data.visits).root(record);
     return (
@@ -68,7 +68,9 @@ export function recordMeta(store, record, data) {
       medicine ? medicineLabel(medicine) : "Non-medication care",
       record.dosage,
       record.frequency,
-      ...visits.map((visit) => `${visit.reason} (${dateLabel(visit.date)})`),
+      ...(visitContext
+        ? []
+        : visits.map((visit) => `${visit.reason} (${dateLabel(visit.date)})`)),
     ]
       .filter(Boolean)
       .join(" · ");
@@ -84,8 +86,19 @@ export function recordMeta(store, record, data) {
     definitions[store].singular
   );
 }
-export function recordRow(store, record, data, label) {
+export function recordRow(store, record, data, label, { visitContext = false } = {}) {
   const definition = definitions[store];
   const status = record.status;
-  return `<a class="record-row ${["treatments", "medications"].includes(store) ? "care-record-row" : ""}" href="#/${store}/${e(record.id)}"><span class="record-icon tone-${store}">${icon(definition.icon)}</span><div class="record-body"><strong>${e(titleFor(store, record))}</strong><span>${e(label || recordMeta(store, record, data))}</span></div><div class="record-end">${status ? `<span class="status ${["Active", "Completed", "Resolved"].includes(status) ? "status-green" : "status-amber"}">${e(status)}</span>` : ""}${definition.date ? `<time>${e(dateLabel(record[definition.date]))}</time>` : ""}${icon("arrow")}</div></a>`;
+  const showPeriod = store === "treatments" && visitContext;
+  const period = showPeriod
+    ? [
+        record.startDate ? dateLabel(record.startDate) : "Start unknown",
+        record.endDate
+          ? dateLabel(record.endDate)
+          : ["Completed", "Stopped"].includes(status)
+            ? "End unknown"
+            : "No end date",
+      ].join(" - ")
+    : "";
+  return `<a class="record-row ${["treatments", "medications"].includes(store) ? "care-record-row" : ""}" href="#/${store}/${e(record.id)}"><span class="record-icon tone-${store}">${icon(definition.icon)}</span><div class="record-body"><strong>${e(titleFor(store, record))}</strong><span>${e(label || recordMeta(store, record, data, { visitContext }))}</span></div><div class="record-end">${status ? `<span class="status ${["Active", "Completed", "Resolved"].includes(status) ? "status-green" : "status-amber"}">${e(status)}</span>` : ""}${showPeriod ? `<span class="status treatment-period" aria-label="Treatment period">${e(period)}</span>` : definition.date ? `<time>${e(dateLabel(record[definition.date]))}</time>` : ""}${icon("arrow")}</div></a>`;
 }
