@@ -27,7 +27,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       await page.locator("#field-diagnosisIds, #field-treatmentIds").count(),
       0,
     );
-    await page.locator("#field-reason").fill("Synthetic diagnosis episode");
+    await page.locator("#field-title").fill("Synthetic diagnosis episode");
     await page.locator("#field-date").fill("2026-03-01T10:00");
     await save();
     await page
@@ -42,7 +42,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       .getByRole("heading", { name: "Add diagnosis", exact: true })
       .waitFor();
     assert.equal(await page.locator("#field-date").inputValue(), "2026-03-01");
-    assert.equal(await page.locator("#field-reason").count(), 0);
+    assert.equal(await page.locator("#field-title").count(), 0);
     await page.locator("#field-name").fill("Synthetic diagnosis");
     await page.locator("#field-notes").fill("Synthetic clinical note");
     assert(
@@ -207,7 +207,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         )
           throw Error("Stale edit lost diagnosis link");
         const child = await saveRecord("visits", {
-          reason: "Synthetic follow-up",
+          title: "Synthetic follow-up",
           date: "2026-03-02T10:00",
           type: "Follow-up",
           parentVisitId: visitId,

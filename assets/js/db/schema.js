@@ -1,5 +1,5 @@
-export const APP_VERSION = "1.6.0";
-export const SCHEMA_VERSION = 7;
+export const APP_VERSION = "1.7.0";
+export const SCHEMA_VERSION = 8;
 export const DB_NAME = "medly";
 export const MAX_FILE_SIZE = 7 * 1024 * 1024;
 export const FILE_TYPES = [
@@ -40,11 +40,11 @@ export const definitions = {
     label: "Medical visits",
     singular: "Medical visit",
     icon: "visit",
-    title: "reason",
+    title: "title",
     date: "date",
     description: "Each health episode, with its follow-ups kept together.",
     fields: [
-      text("reason", "Reason for visit", { required: true }),
+      text("title", "Visit title", { required: true }),
       {
         key: "date",
         label: "Date & time",
@@ -66,7 +66,7 @@ export const definitions = {
         "Surgery",
         "Other",
       ]),
-      area("symptoms", "Symptoms"),
+      area("reasonAndSymptoms", "Visit reason & symptoms"),
       area("procedures", "Tests & procedures"),
       area("findings", "Clinical findings"),
       ref("diagnosisIds", "Diagnoses", "diagnoses", true),

@@ -27,7 +27,7 @@ export function localDateTime() {
 }
 export const today = () => localDateTime().slice(0, 10);
 export const titleFor = (store, record) =>
-  record?.reason || record?.name || "Untitled record";
+  record?.title || record?.reason || record?.name || "Untitled record";
 export function download(blob, name) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

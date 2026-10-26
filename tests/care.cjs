@@ -149,7 +149,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
           !("followUpInstructions" in data.visits[0]),
         "retired fields removed",
       );
-      ensure((await openDatabase()).version === 7, "schema upgraded to 7");
+      ensure((await openDatabase()).version === 8, "schema upgraded to 8");
       ensure(
         data.medications.length === 5 && data.treatments.length === 6,
         "all legacy prescriptions preserved without name-based merging",
@@ -263,7 +263,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     // Save a new visit, then reuse the latest course, reset episode dates/status and keep one library item.
     await page.goto(`${baseURL}/#/visits`);
     await page.locator('[data-add="visits"]').first().click();
-    await page.locator("#field-reason").fill("Synthetic repeat episode");
+    await page.locator("#field-title").fill("Synthetic repeat episode");
     await page.locator("#field-date").fill("2026-03-01T09:00");
     assert.equal(await page.locator("#field-medicationIds").count(), 0);
     assert.equal(
@@ -282,7 +282,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       .getByRole("heading", { name: "Add treatment", exact: true })
       .waitFor();
     assert.equal(
-      await page.locator("#field-reason, #field-treatmentIds").count(),
+      await page.locator("#field-title, #field-treatmentIds").count(),
       0,
     );
     const reuseOptions = await page
@@ -460,7 +460,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         "./assets/js/services/backup.js"
       );
       const backup = await createBackup();
-      if (backup.schemaVersion !== 7) throw Error("Wrong export schema");
+      if (backup.schemaVersion !== 8) throw Error("Wrong export schema");
       await importBackup(await parseBackup(JSON.stringify(backup)), "replace");
       if (
         JSON.stringify(backup, (key, value) =>
@@ -537,7 +537,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         )
           throw Error("Clinical edit lost new treatment link");
         const sibling = await saveRecord("visits", {
-          reason: "Historical shared treatment",
+          title: "Historical shared treatment",
           date: "2026-03-02T10:00",
           type: "Other",
           treatmentIds: [courseId],

@@ -19,12 +19,28 @@ const date = (key, required = false) => ({
   type: "date",
   required,
 });
-// Version 7 adds only an optional visit clinic reference and index.
-export const version6Definitions = {
+// Preserve the historical visit fields for validating backups before migration.
+export const version7Definitions = {
   ...definitions,
   visits: {
     ...definitions.visits,
-    fields: definitions.visits.fields.filter(
+    title: "reason",
+    fields: definitions.visits.fields.map((field) =>
+      field.key === "title"
+        ? { ...field, key: "reason", label: "Reason for visit" }
+        : field.key === "reasonAndSymptoms"
+          ? { ...field, key: "symptoms", label: "Symptoms" }
+          : field,
+    ),
+  },
+};
+
+// Version 7 adds only an optional visit clinic reference and index.
+export const version6Definitions = {
+  ...version7Definitions,
+  visits: {
+    ...version7Definitions.visits,
+    fields: version7Definitions.visits.fields.filter(
       (field) => field.key !== "clinicId",
     ),
   },
@@ -178,8 +194,9 @@ export function migrateV1(source) {
   });
   data.visits = data.visits.map(moveVisitFollowupNotes);
   for (const store of STORES)
-    for (const record of data[store]) validateRecord(store, record);
-  validateRelationships(data);
+    for (const record of data[store])
+      validateRecord(store, record, version7Definitions);
+  validateRelationships(data, version7Definitions);
   return data;
 }
 
@@ -259,7 +276,7 @@ export function migrateVisitNotes(transaction, onError, onComplete = () => {}) {
     try {
       for (const visit of event.target.result) {
         const migrated = moveVisitFollowupNotes(visit);
-        validateRecord("visits", migrated);
+        validateRecord("visits", migrated, version7Definitions);
         if (migrated !== visit) store.put(migrated);
       }
       onComplete();
@@ -279,7 +296,7 @@ export function withDocumentIssueDates(data) {
   });
 }
 
-export function migrateDocumentDates(transaction, onError) {
+export function migrateDocumentDates(transaction, onError, onComplete = () => {}) {
   const data = {};
   let remaining = 2;
   for (const name of ["visits", "documents"])
@@ -292,9 +309,35 @@ export function migrateDocumentDates(transaction, onError) {
           if (document !== data.documents[index])
             transaction.objectStore("documents").put(document);
         });
+        onComplete();
       } catch (error) {
         onError(error);
         transaction.abort();
       }
     };
+}
+
+// Rename only the visit fields. Preserve all other values and audit timestamps.
+export function renameVisitFields(visit) {
+  const { reason, symptoms, ...record } = visit;
+  record.title = reason;
+  if (Object.hasOwn(visit, "symptoms")) record.reasonAndSymptoms = symptoms;
+  return record;
+}
+
+export function migrateVisitFields(transaction, onError) {
+  const store = transaction.objectStore("visits");
+  store.getAll().onsuccess = (event) => {
+    try {
+      for (const visit of event.target.result) {
+        validateRecord("visits", visit, version7Definitions);
+        const migrated = renameVisitFields(visit);
+        validateRecord("visits", migrated);
+        store.put(migrated);
+      }
+    } catch (error) {
+      onError(error);
+      transaction.abort();
+    }
+  };
 }

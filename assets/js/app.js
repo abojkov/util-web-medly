@@ -192,7 +192,7 @@ main.addEventListener("click", async (event) => {
           doctorId: parent.doctorId || "",
           clinicId: parent.doctorId ? "" : parent.clinicId || "",
           type: "Follow-up",
-          reason: `Follow-up: ${parent.reason}`,
+          title: `Follow-up: ${parent.title}`,
         },
       );
     }

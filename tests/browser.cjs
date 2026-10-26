@@ -102,9 +102,9 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     const visitId = await add(
       "visits",
       {
-        reason: "Synthetic visit",
+        title: "Synthetic visit",
         date: "2026-01-10T10:30",
-        symptoms: "Synthetic symptoms",
+        reasonAndSymptoms: "Synthetic symptoms",
         findings: "Synthetic finding",
         procedures: "ECG, blood sample",
         notes: '<img src=x onerror="window.__unsafe=true">',
@@ -178,7 +178,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
 
     // Discard guard, inline validation and static backdrop.
     await page.locator("[data-edit]").click();
-    await page.locator("#field-reason").fill("Unsaved synthetic edit");
+    await page.locator("#field-title").fill("Unsaved synthetic edit");
     page.once("dialog", (dialog) => dialog.dismiss());
     await page.locator("#form-cancel").click();
     assert(await page.locator("#modal").evaluate((dialog) => dialog.open));

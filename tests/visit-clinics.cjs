@@ -104,12 +104,16 @@ const backup = {
           .indexNames.contains("clinicId"),
       };
     });
-    assert.equal(upgraded.backup.schemaVersion, 7);
+    assert.equal(upgraded.backup.schemaVersion, 8);
     assert(upgraded.hasIndex);
     for (const name of Object.keys(data))
       assert.deepEqual(
         upgraded.backup.data[name],
-        [...data[name]].sort((a, b) => a.id.localeCompare(b.id)),
+        data[name].map((record) => {
+          if (name !== "visits") return record;
+          const { reason, ...visit } = record;
+          return { ...visit, title: reason };
+        }).sort((a, b) => a.id.localeCompare(b.id)),
       );
     await page.evaluate(async (backup) => {
       const { parseBackup } = await import("./assets/js/services/backup.js");
@@ -120,7 +124,7 @@ const backup = {
     await page.goto(`${baseURL}/#/visits`);
     await page.locator('[data-add="visits"]').first().click();
     assert(await page.locator("#field-clinicId").isVisible());
-    await page.locator("#field-reason").fill("Synthetic blood test");
+    await page.locator("#field-title").fill("Synthetic blood test");
     await page.locator("#field-date").fill("2018-03-01T10:00");
     await page.locator("#field-type").selectOption("Laboratory visit");
     await page.locator("#field-clinicId").selectOption(clinic.id);
@@ -189,7 +193,7 @@ const backup = {
           let rejected = false;
           try {
             await saveRecord("visits", {
-              reason: "Invalid clinic visit",
+              title: "Invalid clinic visit",
               date: "2018-03-01T10:00",
               type: "Other",
               ...values,
@@ -223,7 +227,7 @@ const backup = {
     );
     assert.deepEqual(errors, []);
     console.log(
-      "PASS additive v6→v7 upgrade preserves records; legacy/current backups, clinic-only mobile visits, doctor switching, clinic search/history, follow-up defaults and transactional relationship protection",
+      "PASS additive v6→v8 upgrade preserves records; legacy/current backups, clinic-only mobile visits, doctor switching, clinic search/history, follow-up defaults and transactional relationship protection",
     );
   } finally {
     await context.close();

@@ -8,6 +8,12 @@ export function validateRecord(store, record, entityDefinitions = definitions) {
   const definition = entityDefinitions[store];
   if (!definition || !record || !isUUID(record.id))
     throw new Error("Invalid record identifier.");
+  if (
+    store === "visits" &&
+    definition.fields.some((field) => field.key === "title") &&
+    ["reason", "symptoms"].some((key) => Object.hasOwn(record, key))
+  )
+    throw new Error("This visit uses outdated fields. Reload Medly before saving.");
   for (const key of ["createdAt", "updatedAt"])
     if (
       typeof record[key] !== "string" ||

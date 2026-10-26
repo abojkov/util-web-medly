@@ -31,7 +31,7 @@ export function courseLabel(course, data) {
     course.status,
     course.dosage,
     course.frequency,
-    visits[0] ? `${visits[0].reason} (${dateLabel(visits[0].date)})` : "",
+    visits[0] ? `${visits[0].title} (${dateLabel(visits[0].date)})` : "",
   ]
     .filter(Boolean)
     .join(" · ");

@@ -23,7 +23,7 @@ export function recordMeta(store, record, data, { visitContext = false } = {}) {
         data.doctors.find((d) => d.id === record.doctorId)?.name ||
           data.clinics.find((clinic) => clinic.id === record.clinicId)?.name,
         record.type,
-        record.parentVisitId ? `Episode: ${root.reason}` : "",
+        record.parentVisitId ? `Episode: ${root.title}` : "",
       ]
         .filter(Boolean)
         .join(" · ") || "Medical visit"
@@ -70,7 +70,7 @@ export function recordMeta(store, record, data, { visitContext = false } = {}) {
       record.frequency,
       ...(visitContext
         ? []
-        : visits.map((visit) => `${visit.reason} (${dateLabel(visit.date)})`)),
+        : visits.map((visit) => `${visit.title} (${dateLabel(visit.date)})`)),
     ]
       .filter(Boolean)
       .join(" · ");

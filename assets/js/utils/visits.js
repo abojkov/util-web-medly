@@ -43,7 +43,7 @@ export function visitHierarchy(visits) {
 export function visitLabel(visit, data) {
   const doctor = data.doctors.find((doctor) => doctor.id === visit.doctorId);
   return [
-    visit.reason,
+    visit.title,
     dateLabel(visit.date, { hour: "2-digit", minute: "2-digit" }),
     doctor?.name ||
       data.clinics.find((clinic) => clinic.id === visit.clinicId)?.name,

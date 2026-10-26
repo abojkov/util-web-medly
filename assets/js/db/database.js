@@ -4,6 +4,7 @@ import {
   migrateFlatFollowups,
   migrateVisitNotes,
   migrateDocumentDates,
+  migrateVisitFields,
 } from "./migrations.js";
 
 let database;
@@ -32,8 +33,10 @@ export function openDatabase() {
       const onError = (error) => {
         migrationError = error;
       };
+      const migrateFields = () =>
+        migrateVisitFields(request.transaction, onError);
       const migrateDocuments = () =>
-        migrateDocumentDates(request.transaction, onError);
+        migrateDocumentDates(request.transaction, onError, migrateFields);
       const migrateNotes = () =>
         migrateVisitNotes(request.transaction, onError, migrateDocuments);
       const visits = request.transaction.objectStore("visits");
@@ -45,6 +48,7 @@ export function openDatabase() {
         migrateFlatFollowups(request.transaction, onError, migrateNotes);
       else if (event.oldVersion === 4) migrateNotes();
       else if (event.oldVersion === 5) migrateDocuments();
+      else if (event.oldVersion >= 6 && event.oldVersion < 8) migrateFields();
     };
     request.onerror = () => reject(migrationError || request.error);
     request.onblocked = () =>

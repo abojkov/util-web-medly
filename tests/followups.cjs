@@ -52,7 +52,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await list();
     await page.locator('[data-add="visits"]').first().click();
     assert.equal(await page.locator("#field-parentVisitId").count(), 0);
-    await page.locator("#field-reason").fill("Synthetic flu episode");
+    await page.locator("#field-title").fill("Synthetic flu episode");
     await page.locator("#field-date").fill("2026-01-01T10:00");
     await page.locator("#field-doctorId").selectOption(providers.first);
     await page.locator("#field-findings").fill("Initial synthetic findings");
@@ -83,7 +83,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         await page.locator("#field-doctorId").inputValue(),
         providers.first,
       );
-      await page.locator("#field-reason").fill(reason);
+      await page.locator("#field-title").fill(reason);
       await page.locator("#field-date").fill(date);
       await page.locator("#field-findings").fill(`Findings for ${reason}`);
       if (first) {
@@ -232,7 +232,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     // A separate illness stays a separate episode.
     await page.locator('[data-add="visits"]').first().click();
     assert.equal(await page.locator("#field-parentVisitId").count(), 0);
-    await page.locator("#field-reason").fill("Synthetic unrelated episode");
+    await page.locator("#field-title").fill("Synthetic unrelated episode");
     await page.locator("#field-date").fill("2026-02-01T09:00");
     await save();
     await page
@@ -435,12 +435,12 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
           "./assets/js/services/backup.js"
         );
         const a = await saveRecord("visits", {
-          reason: "Merge fixture A",
+          title: "Merge fixture A",
           date: "2026-02-02T10:00",
           type: "Other",
         });
         const b = await saveRecord("visits", {
-          reason: "Merge fixture B",
+          title: "Merge fixture B",
           date: "2026-02-03T10:00",
           type: "Other",
         });
@@ -479,13 +479,19 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         const restored = await createBackup();
         if (
           JSON.stringify(backup.data) !== JSON.stringify(restored.data) ||
-          backup.schemaVersion !== 7
+          backup.schemaVersion !== 8
         )
           throw Error("Episode backup round trip failed");
         const legacy = structuredClone(backup);
         legacy.schemaVersion = 2;
         legacy.appVersion = "1.1.0";
         for (const visit of legacy.data.visits) {
+          visit.reason = visit.title;
+          delete visit.title;
+          if (Object.hasOwn(visit, "reasonAndSymptoms")) {
+            visit.symptoms = visit.reasonAndSymptoms;
+            delete visit.reasonAndSymptoms;
+          }
           delete visit.parentVisitId;
           delete visit.clinicId;
         }
@@ -590,7 +596,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await context.setOffline(false);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS merge-cycle rollback, schema-7 backup round trip, reload persistence, nested mobile layouts and offline episode history",
+      "PASS merge-cycle rollback, schema-8 backup round trip, reload persistence, nested mobile layouts and offline episode history",
     );
 
     // Upgrade an actual v2 archive: preserve every record and add the index without guessing links.
@@ -638,13 +644,13 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         const { openDatabase } = await import("./assets/js/db/database.js");
         const db = await openDatabase();
         if (
-          db.version !== 7 ||
+          db.version !== 8 ||
           !db
             .transaction("visits")
             .objectStore("visits")
             .indexNames.contains("parentVisitId")
         )
-          throw Error("v2 archive did not upgrade to indexed v7 schema");
+          throw Error("v2 archive did not upgrade to indexed v8 schema");
         const current = await (
           await import("./assets/js/services/backup.js")
         ).createBackup();
@@ -655,6 +661,11 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
           if (visit && !("issueDate" in document))
             document.issueDate = visit.date.slice(0, 10);
         }
+        backup.data.visits = backup.data.visits.map(({ reason, symptoms, ...visit }) => ({
+          ...visit,
+          title: reason,
+          ...(symptoms !== undefined ? { reasonAndSymptoms: symptoms } : {}),
+        }));
         if (
           current.data.documents.some(
             (document) =>
@@ -663,16 +674,18 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
                 ?.issueDate,
           ) ||
           JSON.stringify(current.data, (key, value) =>
-            key === "issueDate" ? undefined : value,
+            key === "issueDate" ? undefined : value && typeof value === "object" && !Array.isArray(value)
+              ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : value,
           ) !==
             JSON.stringify(backup.data, (key, value) =>
-              key === "issueDate" ? undefined : value,
+              key === "issueDate" ? undefined : value && typeof value === "object" && !Array.isArray(value)
+                ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : value,
             )
         )
-          throw Error("v2→v7 upgrade rewrote or lost existing archive data");
+          throw Error("v2→v8 upgrade rewrote or lost existing archive data");
       }, legacy);
       console.log(
-        "PASS populated v2→v7 upgrade preserves records, attachments and unlinked historical follow-ups",
+        "PASS populated v2→v8 upgrade preserves records, attachments and unlinked historical follow-ups",
       );
     } finally {
       await oldContext.close();
