@@ -211,7 +211,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
 
     const appointmentId = await add(
       "appointments",
-      { reason: "Synthetic appointment", date: "2027-01-01T09:15" },
+      { reason: "Synthetic appointment", date: "2026-01-10T09:15" },
       { clinicId, doctorId },
     );
     await page.locator("[data-complete]").click();

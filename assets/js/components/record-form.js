@@ -9,6 +9,7 @@ import {
   bindAutoGrowingTextareas,
 } from "./form-fields.js";
 import { treatmentEditor } from "./treatment-editor.js";
+import { bindAppointmentVisits } from "./appointment-visits.js";
 import {
   showDialog,
   closeDialog,
@@ -56,6 +57,9 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
   form.addEventListener("change", markDirty);
   form.querySelector("#form-cancel").onclick = requestClose;
   bindFieldSearch(form);
+  const appointmentVisit = store === "appointments"
+    ? bindAppointmentVisits(form, data, values)
+    : undefined;
   let editor;
   if (store === "treatments")
     editor = treatmentEditor(
@@ -143,6 +147,7 @@ export function recordForm(store, data, original, onSaved, defaults = {}) {
         values = draft.course;
         if (draft.medicine) related.medications.push(draft.medicine);
       } else values = readFields(store, form);
+      if (appointmentVisit) values.visitId = appointmentVisit();
       if (store === "visits") values.parentVisitId = parentVisitId;
       if (["visits", "appointments"].includes(store) && values.doctorId)
         values.clinicId = "";

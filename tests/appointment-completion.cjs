@@ -16,9 +16,9 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       const clinic = await saveRecord("clinics", { name: "Synthetic clinic" });
       const doctor = await saveRecord("doctors", { name: "Synthetic doctor", clinicId: clinic.id });
       const visits = [];
-      for (let i = 1; i <= 10; i++) visits.push(await saveRecord("visits", { title: `Synthetic visit ${i}`, date: `2026-01-${String(i).padStart(2, "0")}T10:00`, type: "Other" }));
+      for (let i = 1; i <= 10; i++) visits.push(await saveRecord("visits", { title: `Synthetic visit ${i}`, date: `2026-02-01T${String(i).padStart(2, "0")}:00`, type: "Other" }));
       const appointment = await saveRecord("appointments", { reason: "Synthetic appointment <tag>", date: "2026-02-01T10:00", status: "Scheduled", doctorId: doctor.id, notes: "Original synthetic notes", visitId: visits[0].id });
-      const linked = await saveRecord("appointments", { reason: "Synthetic linked appointment", date: "2026-02-02T10:00", status: "Scheduled", clinicId: clinic.id });
+      const linked = await saveRecord("appointments", { reason: "Synthetic linked appointment", date: "2026-02-01T22:00", status: "Scheduled", clinicId: clinic.id });
       return { appointment, linked, visits, clinic };
     });
     const open = async (id) => {
