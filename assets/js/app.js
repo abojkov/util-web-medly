@@ -281,6 +281,10 @@ main.addEventListener("click", async (event) => {
       );
     if (button.dataset.delete) {
       const store = button.dataset.store;
+      const visitId =
+        store === "documents"
+          ? data.documents.find((doc) => doc.id === button.dataset.delete)?.visitId
+          : "";
       confirmAction(
         `Delete ${definitions[store].singular.toLowerCase()}?`,
         store === "treatments"
@@ -291,7 +295,7 @@ main.addEventListener("click", async (event) => {
         async () => {
           await deleteRecord(store, button.dataset.delete);
           channel?.postMessage("changed");
-          location.hash = `#/${store}`;
+          location.hash = visitId ? `#/visits/${visitId}` : `#/${store}`;
           notify("Record deleted.");
         },
       );
