@@ -30,6 +30,7 @@ import { emptyState, pageHeader } from "./views/shared.js";
 const main = document.querySelector("#main");
 let data;
 let previewURL;
+let documentsScrollVisitId;
 const documentURLs = new WeakMap();
 let rendering = 0;
 let initialized = false;
@@ -140,6 +141,16 @@ async function render() {
       document.querySelector("#global-search").focus();
     }
     if (page === "settings") bindSettings();
+    if (documentsScrollVisitId) {
+      const visitId = documentsScrollVisitId;
+      documentsScrollVisitId = undefined;
+      if (page === "visits" && id === visitId)
+        requestAnimationFrame(() => {
+          const current = route();
+          if (current.page === "visits" && current.id === visitId)
+            scrollToVisitDocuments();
+        });
+    }
     initialized = true;
   } catch (error) {
     if (!initialized) {
@@ -153,6 +164,16 @@ async function render() {
     }
     reportError(error);
   }
+}
+function scrollToVisitDocuments() {
+  const section = document.querySelector("#visit-documents");
+  section?.focus({ preventScroll: true });
+  section?.scrollIntoView({
+    block: "start",
+    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "instant"
+      : "smooth",
+  });
 }
 function debounce(callback) {
   let timer;
@@ -222,9 +243,7 @@ main.addEventListener("click", async (event) => {
         async (saved) => {
           await changed();
           if (store === "documents" && button.dataset.visit) {
-            const section = document.querySelector("#visit-documents");
-            section?.focus({ preventScroll: true });
-            section?.scrollIntoView({ block: "start" });
+            scrollToVisitDocuments();
             return;
           }
           location.hash = `#/${store}/${saved.id}`;
@@ -302,6 +321,7 @@ main.addEventListener("click", async (event) => {
         async () => {
           await deleteRecord(store, button.dataset.delete);
           channel?.postMessage("changed");
+          documentsScrollVisitId = visitId || undefined;
           location.hash = visitId ? `#/visits/${visitId}` : `#/${store}`;
           notify("Record deleted.");
         },
