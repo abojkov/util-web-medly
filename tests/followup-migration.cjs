@@ -289,8 +289,7 @@ const backup = {
                 )
               )
                 throw Error("Old backup was not flattened");
-              await importBackup(parsed, "replace");
-              await importBackup(parsed, "merge");
+              await importBackup(parsed);
               if ((await snapshot()).visits.length !== 5)
                 throw Error("Legacy import duplicated visits");
               const cyclic = structuredClone(backup);

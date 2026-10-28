@@ -149,53 +149,15 @@ export async function parseBackup(input) {
   return migrated;
 }
 
-export async function importBackup(data, mode) {
-  if (!["merge", "replace"].includes(mode))
-    throw new Error("Choose merge or replace.");
+export async function importBackup(data) {
   for (const store of STORES)
     for (const record of data[store]) validateRecord(store, record);
   validateRelationships(data);
-  let validationError;
-  try {
-    await transaction(STORES, "readwrite", (tx) => {
-      const current = {};
-      let remaining = STORES.length;
-      for (const store of STORES)
-        tx.objectStore(store).getAll().onsuccess = (event) => {
-          current[store] = event.target.result;
-          if (--remaining) return;
-          try {
-            const merged = {};
-            for (const name of STORES) {
-              const records = new Map(
-                (mode === "merge" ? current[name] : []).map((record) => [
-                  record.id,
-                  record,
-                ]),
-              );
-              for (const record of data[name]) {
-                const previous = records.get(record.id);
-                if (
-                  !previous ||
-                  Date.parse(record.updatedAt) > Date.parse(previous.updatedAt)
-                )
-                  records.set(record.id, record);
-              }
-              merged[name] = [...records.values()];
-            }
-            validateRelationships(merged);
-            for (const name of STORES) {
-              const store = tx.objectStore(name);
-              if (mode === "replace") store.clear();
-              for (const record of merged[name]) store.put(record);
-            }
-          } catch (error) {
-            validationError = error;
-            tx.abort();
-          }
-        };
-    });
-  } catch (error) {
-    throw validationError || error;
-  }
+  await transaction(STORES, "readwrite", (tx) => {
+    for (const name of STORES) {
+      const store = tx.objectStore(name);
+      store.clear();
+      for (const record of data[name]) store.put(record);
+    }
+  });
 }

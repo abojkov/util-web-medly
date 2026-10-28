@@ -103,11 +103,9 @@ for (const records of Object.values(expected)) records.sort((a,b) => a.id.locale
           const {saveRecord} = await import("./assets/js/db/repository.js");
           const current = await createBackup();
           const before = JSON.stringify(current.data);
-          for (const mode of ["replace", "merge", "merge"]) {
-            await importBackup(await parseBackup(backup), mode);
-            if (JSON.stringify((await createBackup()).data) !== before) throw Error("Legacy restore changed data");
-          }
-          await importBackup(await parseBackup(current), "replace");
+          await importBackup(await parseBackup(backup));
+          if (JSON.stringify((await createBackup()).data) !== before) throw Error("Legacy restore changed data");
+          await importBackup(await parseBackup(current));
           if (JSON.stringify((await createBackup()).data) !== before) throw Error("Current restore changed data");
           for (const version of [7,9]) {
             const invalid = structuredClone(version === 7 ? backup : current);

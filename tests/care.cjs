@@ -205,12 +205,8 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
             .join(),
         "live and backup migrations produce same course IDs",
       );
-      await importBackup(migratedBackup, "merge");
-      await importBackup(migratedBackup, "merge");
-      ensure(
-        (await snapshot()).treatments.length === 6,
-        "repeated v1 imports are idempotent",
-      );
+      await importBackup(migratedBackup);
+      ensure((await snapshot()).treatments.length === 6, "v1 backup restores");
       let blocked = false;
       const invalid = structuredClone(legacy);
       invalid.data.medications[0].doctorId = crypto.randomUUID();
@@ -225,7 +221,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       );
     }, legacyBackup);
     console.log(
-      "PASS real v1→current schema upgrade, every legacy field and attachment, unknown dates, v1 backup compatibility and repeated merge",
+      "PASS real v1→current schema upgrade, every legacy field and attachment, unknown dates and v1 backup restoration",
     );
 
     // Review and explicitly combine the five migrated entries. Courses stay separate.
@@ -461,7 +457,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       );
       const backup = await createBackup();
       if (backup.schemaVersion !== 9) throw Error("Wrong export schema");
-      await importBackup(await parseBackup(JSON.stringify(backup)), "replace");
+      await importBackup(await parseBackup(JSON.stringify(backup)));
       if (
         JSON.stringify(backup, (key, value) =>
           key === "exportedAt" ? undefined : value,

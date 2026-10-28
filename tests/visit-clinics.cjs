@@ -217,7 +217,7 @@ const backup = {
           "./assets/js/services/backup.js"
         );
         const backup = await createBackup();
-        await importBackup(await parseBackup(backup), "replace");
+        await importBackup(await parseBackup(backup));
         if (
           JSON.stringify((await createBackup()).data) !==
           JSON.stringify(backup.data)

@@ -409,7 +409,6 @@ function bindSettings() {
   };
   document.querySelector("#import-backup").onclick = async (event) => {
     const file = document.querySelector("#import-file").files[0];
-    const mode = document.querySelector("#import-mode").value;
     if (!file) return notify("Choose a Medly JSON backup first.", true);
     if (file.size > 250 * 1024 * 1024)
       return notify(
@@ -426,22 +425,20 @@ function bindSettings() {
         0,
       );
       confirmAction(
-        mode === "replace"
-          ? "Replace your entire archive?"
-          : "Merge this backup?",
-        `${count} records validated, including ${incoming.documents.length} documents. ${mode === "replace" ? "All current records will be replaced. Export a backup of your current archive first. This cannot be undone." : "Existing IDs will be merged, keeping the version with the newest updated timestamp. No duplicate IDs will be added."}`,
+        "Replace your entire archive?",
+        `${count} records validated, including ${incoming.documents.length} documents. All current records will be replaced. Export a backup of your current archive first. This cannot be undone.`,
         async () => {
-          await importBackup(incoming, mode);
+          await importBackup(incoming);
           await changed();
           notify("Your backup was restored successfully.");
         },
-        mode === "replace" ? "Replace archive" : "Merge backup",
+        "Replace archive",
       );
     } catch (error) {
       reportError(error);
     } finally {
       button.disabled = false;
-      button.textContent = "Review import";
+      button.textContent = "Review restore";
     }
   };
   document.querySelector("#clear-data").onclick = () =>

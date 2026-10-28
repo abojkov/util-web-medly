@@ -105,8 +105,7 @@ for (const records of Object.values(expected)) records.sort((a, b) => a.id.local
             if (version < 8) for (const v of legacy.data.visits) { v.reason = v.title; delete v.title; }
             if (version < 6) for (const d of legacy.data.documents) delete d.issueDate;
             const parsed = await parseBackup(legacy);
-            await importBackup(parsed, "replace");
-            await importBackup(parsed, "merge");
+            await importBackup(parsed);
             if (canonical((await createBackup()).data) !== before) throw Error(`Schema ${version} migration changed archive data`);
           }
           const largest = structuredClone(backup);
@@ -114,7 +113,7 @@ for (const records of Object.values(expected)) records.sort((a, b) => a.id.local
           const converted = await parseBackup(largest);
           if (converted.appointments[0].notes.length <= 40000) throw Error("Maximum-length notes or clinic name truncated");
           const current = await createBackup();
-          await importBackup(await parseBackup(current), "replace");
+          await importBackup(await parseBackup(current));
           const invalid = structuredClone(current);
           invalid.data.appointments[0].doctorId = backup.data.doctors[0].id;
           invalid.data.appointments[0].clinicId = backup.data.clinics[0].id;

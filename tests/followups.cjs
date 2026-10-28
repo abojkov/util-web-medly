@@ -430,53 +430,22 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
 
     const legacy = await page.evaluate(
       async ({ rootId, otherId }) => {
-        const { snapshot } = await import("./assets/js/db/database.js");
         const { saveRecord } = await import("./assets/js/db/repository.js");
         const { createBackup, parseBackup, importBackup } = await import(
           "./assets/js/services/backup.js"
         );
         const a = await saveRecord("visits", {
-          title: "Merge fixture A",
+          title: "Backup fixture A",
           date: "2026-02-02T10:00",
           type: "Other",
         });
         const b = await saveRecord("visits", {
-          title: "Merge fixture B",
+          title: "Backup fixture B",
           date: "2026-02-03T10:00",
           type: "Other",
         });
-        const incoming = await createBackup();
-        await saveRecord("visits", { ...b, parentVisitId: a.id }, b);
-        incoming.data.visits.find((visit) => visit.id === a.id).parentVisitId =
-          b.id;
-        incoming.data.visits.find((visit) => visit.id === a.id).updatedAt =
-          "2099-01-01T12:00:00.000Z";
-        incoming.data.visits.find((visit) => visit.id === b.id).updatedAt =
-          "2000-01-01T12:00:00.000Z";
-        const parsed = await parseBackup(incoming);
-        let failed = false;
-        try {
-          await importBackup(parsed, "merge");
-        } catch {
-          failed = true;
-        }
-        const after = await snapshot();
-        if (
-          !failed ||
-          after.visits.find((visit) => visit.id === a.id).parentVisitId ||
-          after.visits.find((visit) => visit.id === b.id).parentVisitId !== a.id
-        )
-          throw Error(
-            "Merge introduced invalid follow-up links or partially imported",
-          );
-        const { deleteRecord } = await import("./assets/js/db/repository.js");
-        await deleteRecord("visits", b.id);
-        await deleteRecord("visits", a.id);
         const backup = await createBackup();
-        await importBackup(
-          await parseBackup(JSON.stringify(backup)),
-          "replace",
-        );
+        await importBackup(await parseBackup(JSON.stringify(backup)));
         const restored = await createBackup();
         if (
           JSON.stringify(backup.data) !== JSON.stringify(restored.data) ||
@@ -597,7 +566,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await context.setOffline(false);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS merge-cycle rollback, schema-9 backup round trip, reload persistence, nested mobile layouts and offline episode history",
+      "PASS schema-9 backup round trip, reload persistence, nested mobile layouts and offline episode history",
     );
 
     // Upgrade an actual v2 archive: preserve every record and add the index without guessing links.

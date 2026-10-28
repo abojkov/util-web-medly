@@ -259,7 +259,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     // Deletion protection in the real database, transaction rollback, backup round trips.
     const checks = await page.evaluate(
       async ({ doctorId, visitId, appointmentId }) => {
-        const { snapshot, transaction, clearDatabase } = await import(
+        const { snapshot, clearDatabase } = await import(
           "./assets/js/db/database.js"
         );
         const { deleteRecord, saveRecord } = await import(
@@ -320,24 +320,6 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
             "%PDF-1.4\n% Synthetic test attachment\n%%EOF",
           "attachment bytes round trip",
         );
-        await importBackup(parsed, "merge");
-        ensure(
-          (await snapshot()).visits.length === 1,
-          "merge avoids duplicate IDs",
-        );
-        const newer = {
-          ...before.visits[0],
-          notes: "A newer local edit",
-          updatedAt: "2099-01-01T00:00:00.000Z",
-        };
-        await transaction(["visits"], "readwrite", (tx) =>
-          tx.objectStore("visits").put(newer),
-        );
-        await importBackup(parsed, "merge");
-        ensure(
-          (await snapshot()).visits[0].notes === "A newer local edit",
-          "merge preserves newer local edit",
-        );
         const invalid = JSON.parse(encoded);
         invalid.data.visits[0].doctorId = crypto.randomUUID();
         blocked = false;
@@ -348,7 +330,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         }
         ensure(
           blocked &&
-            (await snapshot()).visits[0].notes === "A newer local edit",
+            (await snapshot()).visits[0].notes === before.visits[0].notes,
           "dangling backup rejected without writes",
         );
         const corrupt = JSON.parse(encoded);
@@ -430,7 +412,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         };
         blocked = false;
         try {
-          await importBackup(parsed, "replace");
+          await importBackup(parsed);
         } catch {
           blocked = true;
         } finally {
@@ -439,7 +421,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
         const rolledBack = await snapshot();
         ensure(
           blocked &&
-            rolledBack.visits[0].notes === "A newer local edit" &&
+            rolledBack.visits[0].notes === before.visits[0].notes &&
             rolledBack.documents.length === 1 &&
             rolledBack.appointments[0].id === appointmentId,
           "failed replacement rolls back all stores",
@@ -449,7 +431,7 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
           Object.values(await snapshot()).every((records) => !records.length),
           "atomic clear removes all records",
         );
-        await importBackup(parsed, "replace");
+        await importBackup(parsed);
         ensure(
           JSON.stringify(await createBackup(), (key, value) =>
             key === "exportedAt" ? undefined : value,
@@ -554,7 +536,9 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await backupFile.saveAs(backupPath);
     await page.locator("#import-file").setInputFiles(backupPath);
     await page.locator("#import-backup").click();
-    await page.getByRole("heading", { name: "Merge this backup?" }).waitFor();
+    await page
+      .getByRole("heading", { name: "Replace your entire archive?" })
+      .waitFor();
     await page.locator("#confirm-action").click();
     await page.waitForFunction(() => !document.querySelector("#modal").open);
     await page
