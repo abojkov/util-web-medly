@@ -348,9 +348,13 @@ function bindSettings() {
     button.textContent = "Preparing backup…";
     try {
       const backup = await createBackup();
+      const exportedAt = new Date(backup.exportedAt);
+      const pad = (value) => String(value).padStart(2, "0");
+      const date = `${exportedAt.getFullYear()}${pad(exportedAt.getMonth() + 1)}${pad(exportedAt.getDate())}`;
+      const time = `${pad(exportedAt.getHours())}${pad(exportedAt.getMinutes())}`;
       download(
         new Blob([JSON.stringify(backup)], { type: "application/json" }),
-        `medly-backup-${backup.exportedAt.replace(/[:.]/g, "-")}.json`,
+        `medly-bckp-${date}-${time}.json`,
       );
       notify("Backup prepared. Keep the downloaded file somewhere private.");
     } catch (error) {

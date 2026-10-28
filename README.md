@@ -121,7 +121,7 @@ Exports use schema 9; imports accept schemas 1 through 9. Version-1 backups are 
 
 ## Backup format and recovery
 
-Export filenames include the UTC export date and time down to milliseconds, such as `medly-backup-2026-10-26T15-30-45-123Z.json`. The filename timestamp matches the backup’s `exportedAt` value.
+Export filenames use `medly-bckp-YYYYMMDD-HHmm.json`, such as `medly-bckp-20261026-1530.json`. The date and time use the device’s local timezone at export, with seconds and milliseconds omitted. The backup’s `exportedAt` value remains an ISO timestamp in UTC.
 
 Export produces a JSON object with `format: "medly-backup"`, `schemaVersion`, `appVersion`, `exportedAt` and a `data` object containing every store. Documents replace their `blob` with `base64` only inside the backup. These backups contain readable sensitive medical information; protect the files accordingly.
 
