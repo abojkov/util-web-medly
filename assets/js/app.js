@@ -79,7 +79,6 @@ function navigation(page) {
 async function storageInfo() {
   try {
     return {
-      ...(await navigator.storage?.estimate()),
       persisted: await navigator.storage?.persisted?.(),
     };
   } catch {
@@ -117,7 +116,7 @@ async function render() {
         : recordsPage(page, data);
     else if (page === "dashboard") main.innerHTML = dashboard(data);
     else if (page === "timeline") main.innerHTML = timelinePage(data);
-    else if (page === "settings") main.innerHTML = settingsPage(data, storage);
+    else if (page === "settings") main.innerHTML = settingsPage(storage);
     else if (page === "search") main.innerHTML = searchPage();
     else
       main.innerHTML =
