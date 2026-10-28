@@ -30,6 +30,7 @@ import { emptyState, pageHeader } from "./views/shared.js";
 const main = document.querySelector("#main");
 let data;
 let previewURL;
+const documentURLs = new WeakMap();
 let rendering = 0;
 let initialized = false;
 const channel = globalThis.BroadcastChannel
@@ -309,6 +310,19 @@ main.addEventListener("click", async (event) => {
     if (button.dataset.download) {
       const doc = data.documents.find((d) => d.id === button.dataset.download);
       download(doc.blob, doc.name);
+    }
+    if (button.dataset.openDocument) {
+      const doc = data.documents.find(
+        (doc) => doc.id === button.dataset.openDocument,
+      );
+      // Native viewers may read the file later. Keep its URL alive until page unload.
+      if (!documentURLs.has(doc.blob))
+        documentURLs.set(doc.blob, URL.createObjectURL(doc.blob));
+      const link = document.createElement("a");
+      link.href = documentURLs.get(doc.blob);
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.click();
     }
     if (button.dataset.preview) {
       const doc = data.documents.find((d) => d.id === button.dataset.preview);

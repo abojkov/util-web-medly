@@ -725,6 +725,33 @@ main:focus {
 .record-row:hover {
   background: #fafbf8;
 }
+.visit-document-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #f0f1ed;
+  padding-right: 14px;
+}
+.visit-document-row:last-child {
+  border-bottom: 0;
+}
+.visit-document-row:hover,
+.visit-document-row:focus-within {
+  background: #fafbf8;
+}
+.visit-document-row > .record-row {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 0;
+  background: transparent;
+}
+.visit-document-row > .icon-button {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+}
+.visit-document-row > .icon-button:hover {
+  color: var(--pink);
+}
 .record-body {
   min-width: 0;
   display: flex;

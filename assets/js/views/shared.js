@@ -102,5 +102,8 @@ export function recordRow(store, record, data, label, { visitContext = false } =
             : "No end date",
       ].join(" - ")
     : "";
-  return `<a class="record-row ${["treatments", "medications"].includes(store) ? "care-record-row" : ""}" href="#/${store}/${e(record.id)}"><span class="record-icon tone-${store}">${icon(definition.icon)}</span><div class="record-body"><strong>${e(titleFor(store, record))}</strong><span>${e(label || recordMeta(store, record, data, { visitContext }))}</span></div><div class="record-end">${status ? `<span class="status ${["Active", "Completed", "Resolved"].includes(status) ? "status-green" : "status-amber"}">${e(status)}</span>` : ""}${showPeriod ? `<span class="status treatment-period" aria-label="Treatment period">${e(period)}</span>` : definition.date ? `<time>${e(dateLabel(record[definition.date]))}</time>` : ""}${icon("arrow")}</div></a>`;
+  const row = `<a class="record-row ${["treatments", "medications"].includes(store) ? "care-record-row" : ""}" href="#/${store}/${e(record.id)}"><span class="record-icon tone-${store}">${icon(definition.icon)}</span><div class="record-body"><strong>${e(titleFor(store, record))}</strong><span>${e(label || recordMeta(store, record, data, { visitContext }))}</span></div><div class="record-end">${status ? `<span class="status ${["Active", "Completed", "Resolved"].includes(status) ? "status-green" : "status-amber"}">${e(status)}</span>` : ""}${showPeriod ? `<span class="status treatment-period" aria-label="Treatment period">${e(period)}</span>` : definition.date ? `<time>${e(dateLabel(record[definition.date]))}</time>` : ""}${icon("arrow")}</div></a>`;
+  if (store === "documents" && visitContext)
+    return `<div class="visit-document-row">${row}<button type="button" class="icon-button" data-open-document="${e(record.id)}" aria-label="Open document in new tab: ${e(record.name)}" title="Open document in new tab">${icon("open")}</button></div>`;
+  return row;
 }

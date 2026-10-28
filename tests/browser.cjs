@@ -205,6 +205,32 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       () => document.activeElement?.id === "visit-documents",
     );
     assert.equal(new URL(page.url()).hash, `#/visits/${visitId}`);
+    await page.setViewportSize({ width: 320, height: 800 });
+    const openDocument = page.getByRole("button", {
+      name: "Open document in new tab: synthetic-report.pdf",
+      exact: true,
+    });
+    const buttonBounds = await openDocument.boundingBox();
+    assert(buttonBounds.width >= 44 && buttonBounds.height >= 44);
+    assert(await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ));
+    await page.waitForFunction(
+      () => !document.querySelector("#notifications").children.length,
+    );
+    await page.locator("#visit-documents").screenshot({
+      path: path.join(artifacts, "mobile-visit-documents.png"),
+    });
+    const [documentTab] = await Promise.all([
+      page.waitForEvent("popup"),
+      openDocument.click(),
+    ]);
+    await documentTab.waitForLoadState("domcontentloaded");
+    assert(documentTab.url().startsWith("blob:"));
+    assert.equal(await documentTab.evaluate(() => Boolean(window.opener)), false);
+    assert.equal(new URL(page.url()).hash, `#/visits/${visitId}`);
+    await documentTab.close();
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.locator("#visit-documents").getByRole("link", {
       name: "synthetic-report.pdf",
     }).click();
