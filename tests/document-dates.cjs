@@ -227,6 +227,15 @@ const backup = {
           buffer: Buffer.from(pdf),
         });
         await page.locator('#record-form button[type="submit"]').click();
+        await page.waitForFunction(
+          () => document.activeElement?.id === "visit-documents",
+        );
+        assert.equal(new URL(page.url()).hash, `#/visits/${visit.id}`);
+        const section = await page.locator("#visit-documents").boundingBox();
+        assert(section.y >= 0 && section.y < page.viewportSize().height);
+        await page.locator("#visit-documents").getByRole("link", {
+          name: "Synthetic new report.pdf",
+        }).click();
         await page
           .getByRole("heading", {
             name: "Synthetic new report.pdf",

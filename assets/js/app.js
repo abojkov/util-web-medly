@@ -220,6 +220,12 @@ main.addEventListener("click", async (event) => {
         undefined,
         async (saved) => {
           await changed();
+          if (store === "documents" && button.dataset.visit) {
+            const section = document.querySelector("#visit-documents");
+            section?.focus({ preventScroll: true });
+            section?.scrollIntoView({ block: "start" });
+            return;
+          }
           location.hash = `#/${store}/${saved.id}`;
         },
         button.dataset.visit

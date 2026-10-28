@@ -201,6 +201,13 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     await page.locator("#field-description").fill("Synthetic report");
     await page.locator('#record-form button[type="submit"]').click();
     await page.waitForFunction(() => !document.querySelector("#modal").open);
+    await page.waitForFunction(
+      () => document.activeElement?.id === "visit-documents",
+    );
+    assert.equal(new URL(page.url()).hash, `#/visits/${visitId}`);
+    await page.locator("#visit-documents").getByRole("link", {
+      name: "synthetic-report.pdf",
+    }).click();
     await page.getByRole("heading", { name: "synthetic-report.pdf" }).waitFor();
     const downloadPromise = page.waitForEvent("download");
     await page.locator("[data-download]").click();
