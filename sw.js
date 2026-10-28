@@ -1,4 +1,4 @@
-const CACHE = "medly-shell-v59";
+const CACHE = "medly-shell-v66";
 const ASSETS = [
   "./",
   "./index.html",
@@ -25,6 +25,7 @@ const ASSETS = [
   "./assets/js/services/backup.js",
   "./assets/js/services/history.js",
   "./assets/js/components/icons.js",
+  "./assets/js/components/file-picker.js",
   "./assets/js/components/feedback.js",
   "./assets/js/components/record-form.js",
   "./assets/js/components/appointment-completion.js",

@@ -6,6 +6,7 @@ import { createBackup, parseBackup, importBackup } from "./services/backup.js";
 import { route, initRouter } from "./router.js";
 import { icon } from "./components/icons.js";
 import { recordForm } from "./components/record-form.js";
+import { bindFilePicker } from "./components/file-picker.js";
 import { appointmentCompletion } from "./components/appointment-completion.js";
 import {
   showDialog,
@@ -385,6 +386,7 @@ main.addEventListener("click", async (event) => {
 });
 
 function bindSettings() {
+  bindFilePicker(document.querySelector("#import-file"));
   document.querySelector("#export-backup").onclick = async (event) => {
     const button = event.currentTarget;
     button.disabled = true;

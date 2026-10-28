@@ -198,6 +198,10 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
       mimeType: "application/pdf",
       buffer: fileBytes,
     });
+    assert.equal(
+      await page.locator("#document-file-selected").textContent(),
+      "synthetic-report.pdf",
+    );
     await page.locator("#field-description").fill("Synthetic report");
     await page.locator('#record-form button[type="submit"]').click();
     await page.waitForFunction(() => !document.querySelector("#modal").open);
@@ -535,6 +539,10 @@ const baseURL = process.env.MEDLY_TEST_URL || "http://127.0.0.1:8080";
     const backupPath = path.join(artifacts, "synthetic-backup.json");
     await backupFile.saveAs(backupPath);
     await page.locator("#import-file").setInputFiles(backupPath);
+    assert.equal(
+      await page.locator("#import-file-selected").textContent(),
+      "synthetic-backup.json",
+    );
     await page.locator("#import-backup").click();
     await page
       .getByRole("heading", { name: "Replace your entire archive?" })
